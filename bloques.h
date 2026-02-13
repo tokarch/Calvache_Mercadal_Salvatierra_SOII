@@ -14,11 +14,11 @@
 #include <string.h>     // strerror, memset
 
 // Constantes del sistema
-#define BLOCKSIZE 1024  // Tamaño del bloque en bytes [cite: 205]
+#define BLOCKSIZE 1024  // Tamaño del bloque en bytes
 #define EXITO 0
 #define FALLO -1
 
-// Colores para la consola (útil para depuración visual) [cite: 217]
+// Colores para la consola (útil para depuración visual)
 #define NEGRITA "\x1b[1m"
 #define BLACK   "\x1b[30m"
 #define RED     "\x1b[31m"
@@ -30,7 +30,7 @@
 #define WHITE   "\x1b[37m"
 #define RESET   "\x1b[0m"
 
-// Prototipos de funciones de bloques.c [cite: 244]
+// Prototipos de funciones de bloques.c
 int bmount(const char *camino);
 int bumount();
 int bwrite(unsigned int nbloque, const void *buf);

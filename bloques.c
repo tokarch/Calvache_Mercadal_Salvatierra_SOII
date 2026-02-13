@@ -4,7 +4,7 @@
 #include "bloques.h"
 
 // Variable global estática para el descriptor del fichero.
-// Al ser static, su visibilidad está restringida a este archivo. [cite: 199]
+// Al ser static, su visibilidad está restringida a este archivo.
 static int descriptor = 0;
 
 /**

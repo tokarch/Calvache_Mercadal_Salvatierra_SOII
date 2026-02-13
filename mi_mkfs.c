@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
 
     // Obtenemos los parámetros de la línea de comandos
     char *nombre_dispositivo = argv[1];
-    int nbloques = atoi(argv[2]); // Convertimos el string de bloques a entero [cite: 272]
+    int nbloques = atoi(argv[2]); // Convertimos el string de bloques a entero
 
     // 1. Montamos el dispositivo virtual
     if (bmount(nombre_dispositivo) == FALLO) {
