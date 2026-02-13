@@ -101,3 +101,9 @@ git push
 * Hacer pull antes de empezar siempre
 * No trabajar 2 personas en el mismo archivo a la vez
 * Commits con mensajes claros (nada de "cosas" o "update")
+
+Para subir cambios al main:
+git checkout main
+git pull origin main
+git merge toni-rama
+git push origin main
