@@ -58,7 +58,7 @@ git pull
 
 ---
 
-6. TRABAJAR Y GUARDAR CAMBIOS
+6. TRABAJAR Y GUARDAR CAMBIOS EN TU ORDENADOR
 
 ---
 
@@ -67,7 +67,7 @@ git commit -m "Descripción clara del cambio"
 
 ---
 
-7. SUBIR TUS CAMBIOS (A TU RAMA)
+7. SUBIR TUS CAMBIOS (A TU RAMA ONLINE QUE DIGAMOS)
 
 ---
 
