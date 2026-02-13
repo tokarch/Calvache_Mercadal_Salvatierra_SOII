@@ -1,29 +1,39 @@
 // bloques.h
-// Autor: [Tu Nombre/Grupo]
-// Descripción: Definiciones globales y librerías básicas para el Sistema de Ficheros.
+// Descripción: Definiciones globales, librerías y prototipos de funciones de bajo nivel.
 
 #ifndef BLOQUES_H
 #define BLOQUES_H
 
-#include <stdio.h>      // Entrada/Salida estándar
-#include <stdlib.h>     // Funciones de memoria, conversión, etc.
-#include <unistd.h>     // Llamadas al sistema POSIX (read, write, lseek, etc.)
-#include <sys/types.h>  // Definición de tipos de datos (off_t, size_t)
-#include <sys/stat.h>   // Estructuras para stat y permisos
-#include <fcntl.h>      // Control de archivos (open, flags como O_RDWR)
-#include <string.h>     // Manipulación de cadenas (memcpy, memset)
-#include <errno.h>      // Gestión de errores
+#include <stdio.h>      // printf, fprintf, stderr, etc.
+#include <stdlib.h>     // exit, malloc, atoi, etc.
+#include <unistd.h>     // read, write, open, close, lseek
+#include <sys/types.h>  // Tipos de datos del sistema
+#include <sys/stat.h>   // Permisos y flags de creación
+#include <fcntl.h>      // O_RDWR, O_CREAT, O_TRUNC
+#include <errno.h>      // Gestión de la variable errno
+#include <string.h>     // strerror, memset
 
-// ----------------------------------------------------------------------
-// CONSTANTES DEL SISTEMA DE FICHEROS
-// ----------------------------------------------------------------------
-
-// Tamaño de bloque: El enunciado permite entre 512 y 4096 bytes.
-// Usaremos 1024 como estándar equilibrado.
-#define BLOCK_SIZE 1024 
-
-// Mensajes de éxito/error (útil para depuración)
+// Constantes del sistema
+#define BLOCKSIZE 1024  // Tamaño del bloque en bytes [cite: 205]
 #define EXITO 0
 #define FALLO -1
+
+// Colores para la consola (útil para depuración visual) [cite: 217]
+#define NEGRITA "\x1b[1m"
+#define BLACK   "\x1b[30m"
+#define RED     "\x1b[31m"
+#define GREEN   "\x1b[32m"
+#define YELLOW  "\x1b[33m"
+#define BLUE    "\x1b[34m"
+#define MAGENTA "\x1b[35m"
+#define CYAN    "\x1b[36m"
+#define WHITE   "\x1b[37m"
+#define RESET   "\x1b[0m"
+
+// Prototipos de funciones de bloques.c [cite: 244]
+int bmount(const char *camino);
+int bumount();
+int bwrite(unsigned int nbloque, const void *buf);
+int bread(unsigned int nbloque, void *buf);
 
 #endif // BLOQUES_H
