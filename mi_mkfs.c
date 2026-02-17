@@ -1,7 +1,7 @@
 // mi_mkfs.c
-// Descripción: Comando para crear y formatear el disco virtual.
+// Descripción: Comando para crear y formatear el disco virtual. (Versión Nivel 2).
 
-#include "bloques.h"
+#include "ficheros_basico.h"
 
 int main(int argc, char **argv) {
     
@@ -15,6 +15,7 @@ int main(int argc, char **argv) {
     // Obtenemos los parámetros de la línea de comandos
     char *nombre_dispositivo = argv[1];
     int nbloques = atoi(argv[2]); // Convertimos el string de bloques a entero
+    int ninodos = nbloques / 4; // Heurística del enunciado
 
     // 1. Montamos el dispositivo virtual
     if (bmount(nombre_dispositivo) == FALLO) {
@@ -37,12 +38,22 @@ int main(int argc, char **argv) {
         }
     }
 
-    // 4. Desmontamos el dispositivo
+    // 4. Inicialización de metadatos (NIVEL 2)
+    printf("Inicializando Superbloque...\n");
+    if (initSB(nbloques, ninodos) == FALLO) return FALLO;
+
+    printf("Inicializando Mapa de Bits...\n");
+    if (initMB() == FALLO) return FALLO;
+
+    printf("Inicializando Array de Inodos...\n");
+    if (initAI() == FALLO) return FALLO;
+
+    // 5. Desmontamos el dispositivo
     if (bumount() == FALLO) {
         fprintf(stderr, RED "Error al desmontar el dispositivo\n" RESET);
         return FALLO;
     }
 
-    printf(GREEN "Disco formateado correctamente con %d bloques de %d bytes.\n" RESET, nbloques, BLOCKSIZE);
+    printf(GREEN "Sistema de ficheros creado: %d bloques, %d inodos.\n" RESET, nbloques, ninodos);
     return EXITO;
 }

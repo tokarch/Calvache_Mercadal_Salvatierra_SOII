@@ -83,7 +83,7 @@ git push
 
 ---
 
-git pull origin main
+git pull (origin main)
 git checkout tu-rama
 (programar)
 git add .
