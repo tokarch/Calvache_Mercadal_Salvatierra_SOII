@@ -38,6 +38,10 @@ int main(int argc, char **argv) {
         }
     }
 
+    if (sizeof(struct inodo) != 128) {
+    fprintf(stderr, RED "Error: El tamaño del inodo es %lu y debe ser 128\n" RESET, sizeof(struct inodo));
+    return FALLO;
+}
     // 4. Inicialización de metadatos (NIVEL 2)
     printf("Inicializando Superbloque...\n");
     if (initSB(nbloques, ninodos) == FALLO) return FALLO;

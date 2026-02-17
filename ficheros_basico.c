@@ -119,7 +119,7 @@ int initAI() {
 
     struct inodo inodos[BLOCKSIZE / INODOSIZE];
     unsigned int contInodos = SB.posPrimerInodoLibre + 1; // El siguiente al 0 es el 1
-
+    unsigned int inodoAbsoluto = 0; // Para saber qué inodo estamos tratando realmente
     // Recorremos todos los bloques del AI
     for (unsigned int i = SB.posPrimerBloqueAI; i <= SB.posUltimoBloqueAI; i++) {
         // Inicializamos los inodos del bloque
@@ -132,6 +132,7 @@ int initAI() {
             } else {
                 inodos[j].punterosDirectos[0] = UINT_MAX; // Fin de la lista
             }
+            inodoAbsoluto++;
         }
         // Escribimos el bloque de inodos
         if (bwrite(i, inodos) == FALLO) return FALLO;
