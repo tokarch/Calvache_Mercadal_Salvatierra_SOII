@@ -107,3 +107,4 @@ git checkout main
 git pull origin main
 git merge toni-rama
 git push origin main
+git checkout toni-rama
