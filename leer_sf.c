@@ -58,11 +58,25 @@ int main(int argc, char **argv) {
 
     // Recorrido de inodos libres para verificar lista enlazada
     printf("\nRECORRIDO LISTA INODOS LIBRES (Primeros 10)...\n");
-    struct inodo inodos[BLOCKSIZE/INODOSIZE];
-    // Esto es solo un ejemplo de lectura del primer bloque del AI
-    bread(SB.posPrimerBloqueAI, inodos);
-    for (int i=0; i<10; i++) {
-        printf("%d ", inodos[i].punterosDirectos[0]);
+
+    struct inodo inodo_aux;
+    // 1. Empezamos exactamente donde el Superbloque dice que está el primero libre
+    unsigned int inodo_actual = SB.posPrimerInodoLibre; 
+
+    for (int i = 0; i < 10; i++) {
+        printf("%d ", inodo_actual); // Imprimimos el inodo que estamos visitando
+        
+        // 2. Lo traemos a RAM
+        leer_inodo(inodo_actual, &inodo_aux);
+        
+        // 3. El siguiente paso en nuestro camino es lo que guarde su puntero
+        inodo_actual = inodo_aux.punterosDirectos[0];
+        
+        // 4. Medida de seguridad por si llegamos al final antes de tiempo
+        if (inodo_actual == UINT_MAX) {
+            printf("... (FIN)");
+            break;
+        }
     }
     printf("\n");
 
