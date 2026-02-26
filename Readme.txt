@@ -108,3 +108,9 @@ git pull origin main
 git merge toni-rama
 git push origin main
 git checkout toni-rama
+
+Descargarse cambios de main a tu rama:
+git checkout main
+git pull origin main
+git checkout su-rama
+git merge main
