@@ -15,6 +15,8 @@ static int descriptor = 0;
  * - camino: cadena con la ruta/nombre del fichero a abrir/crear.
  * Retorno:
  * - Devuelve el descriptor del fichero o FALLO (-1) en caso de error.
+ * Llama a: umask(), open(), perror()
+ * Es llamada por: mi_mkfs()
  */
 int bmount(const char *camino) {
     // Configuración de permisos: rw-rw-rw- (0666)
@@ -39,8 +41,12 @@ int bmount(const char *camino) {
  * bumount
  * -------
  * Desmonta el dispositivo virtual cerrando el fichero.
+ * Parámetros:
+ * - Ninguno.
  * Retorno:
  * - EXITO (0) si se cerró bien, FALLO (-1) si hubo error.
+ * Llama a: close(), perror()
+ * Es llamada por: mi_mkfs()
  */
 int bumount() {
     // Intentamos cerrar el descriptor actual
@@ -61,6 +67,8 @@ int bumount() {
  * - buf: Puntero al buffer de memoria con los datos (tamaño BLOCKSIZE).
  * Retorno:
  * - Número de bytes escritos (debería ser BLOCKSIZE) o FALLO (-1).
+ * Llama a: lseek(), write(), perror()
+ * Es llamada por: mi_mkfs()
  */
 int bwrite(unsigned int nbloque, const void *buf) {
     // 1. Calcular el desplazamiento (offset) en bytes
@@ -93,6 +101,8 @@ int bwrite(unsigned int nbloque, const void *buf) {
  * - buf: Buffer donde se almacenarán los datos leídos.
  * Retorno:
  * - Número de bytes leídos o FALLO (-1).
+ * Llama a: lseek(), read(), perror()
+ * Es llamada por: 
  */
 int bread(unsigned int nbloque, void *buf) {
     // 1. Calcular el desplazamiento
