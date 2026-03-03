@@ -1,5 +1,5 @@
 // ficheros_basico.h
-// Descripción: Estructuras y prototipos para el manejo de metadatos (Nivel 2).
+// Descripción: Cabecera actualizada con constantes de punteros (Nivel 4).
 
 #ifndef FICHEROS_BASICO_H
 #define FICHEROS_BASICO_H
@@ -12,6 +12,13 @@
 #define posSB 0         // El superbloque está en el bloque 0
 #define tamSB 1         // El superbloque ocupa 1 bloque
 #define INODOSIZE 128   // Tamaño del inodo en bytes
+
+// CONSTANTES PARA EL DIRECCIONAMIENTO DE INODOS (NIVEL 4)
+#define NPUNTEROS (BLOCKSIZE / sizeof(unsigned int)) // 256 punteros por bloque
+#define DIRECTOS 12
+#define INDIRECTOS0 (NPUNTEROS + DIRECTOS)    // 268
+#define INDIRECTOS1 (NPUNTEROS * NPUNTEROS + INDIRECTOS0) // 65.804
+#define INDIRECTOS2 (NPUNTEROS * NPUNTEROS * NPUNTEROS + INDIRECTOS1) // 16.843.020
 
 // ----------------------------------------------------------------------
 // SUPERBLOQUE
@@ -62,13 +69,14 @@ struct inodo {
                  4 * sizeof(time_t) - 18 * sizeof(unsigned int)];
 };
 
-// Prototipos de funciones
+// Funciones Nivel 2
 int tamMB(unsigned int nbloques);
 int tamAI(unsigned int ninodos);
 int initSB(unsigned int nbloques, unsigned int ninodos);
 int initMB();
 int initAI();
 
+// Funciones Nivel 3
 int escribir_bit(unsigned int nbloque, unsigned int bit);
 char leer_bit(unsigned int nbloque);
 int reservar_bloque();
@@ -76,5 +84,8 @@ int liberar_bloque(unsigned int nbloque);
 int escribir_inodo(unsigned int ninodo, struct inodo *inodo);
 int leer_inodo(unsigned int ninodo, struct inodo *inodo);
 int reservar_inodo(unsigned char tipo, unsigned char permisos);
+
+// Funciones Nivel 4 (NUEVAS)
+int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned char reservar);
 
 #endif // FICHEROS_BASICO_H

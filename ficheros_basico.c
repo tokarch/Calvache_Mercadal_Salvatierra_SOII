@@ -1,5 +1,5 @@
 // ficheros_basico.c
-// Descripción: Implementación de funciones de bajo nivel para metadatos.
+// Implementación actualizada con lógica de traducción de bloques (Nivel 4).
 
 #include "ficheros_basico.h"
 
@@ -370,4 +370,148 @@ int reservar_inodo(unsigned char tipo, unsigned char permisos) {
     if (escribir_inodo(posInodoReservado, &inodoReservado) == FALLO) return FALLO;
 
     return posInodoReservado;
+}
+
+// ==============================================================================
+// FUNCIONES NIVEL 4 (Direccionamiento Multinivel)
+// ==============================================================================
+
+/**
+ * obtener_nRangoBL
+ * Obtiene el rango de punteros (Directos, Indirectos0, 1 o 2) para un bloque lógico.
+ * Actualiza *ptr con el puntero inicial correspondiente del inodo.
+ */
+int obtener_nRangoBL(struct inodo *inodo, unsigned int nblogico, unsigned int *ptr) {
+    if (nblogico < DIRECTOS) {
+        *ptr = inodo->punterosDirectos[nblogico];
+        return 0; // Rango Directo
+    } else if (nblogico < INDIRECTOS0) {
+        *ptr = inodo->punterosIndirectos[0];
+        return 1; // Indirecto Simple
+    } else if (nblogico < INDIRECTOS1) {
+        *ptr = inodo->punterosIndirectos[1];
+        return 2; // Indirecto Doble
+    } else if (nblogico < INDIRECTOS2) {
+        *ptr = inodo->punterosIndirectos[2];
+        return 3; // Indirecto Triple
+    }
+
+    *ptr = 0;
+    fprintf(stderr, "Error: Bloque lógico %d fuera de rango\n", nblogico);
+    return FALLO;
+}
+
+/**
+ * obtener_indice
+ * Calcula el índice dentro de un bloque de punteros para un nivel específico.
+ * nivel_punteros: 3 (apunta a indirectos dobles), 2 (apunta a simples), 1 (apunta a datos).
+ */
+int obtener_indice(unsigned int nblogico, int nivel_punteros) {
+    if (nblogico < DIRECTOS) {
+        return nblogico; // Directo, no hay índice dentro de bloque
+    } else if (nblogico < INDIRECTOS0) {
+        return nblogico - DIRECTOS; // Indirecto 0 (nivel 1)
+    } else if (nblogico < INDIRECTOS1) { // Indirecto 1
+        if (nivel_punteros == 2) {
+            return (nblogico - INDIRECTOS0) / NPUNTEROS;
+        } else if (nivel_punteros == 1) {
+            return (nblogico - INDIRECTOS0) % NPUNTEROS;
+        }
+    } else if (nblogico < INDIRECTOS2) { // Indirecto 2
+        if (nivel_punteros == 3) {
+            return (nblogico - INDIRECTOS1) / (NPUNTEROS * NPUNTEROS);
+        } else if (nivel_punteros == 2) {
+            return ((nblogico - INDIRECTOS1) % (NPUNTEROS * NPUNTEROS)) / NPUNTEROS;
+        } else if (nivel_punteros == 1) {
+            return ((nblogico - INDIRECTOS1) % (NPUNTEROS * NPUNTEROS)) % NPUNTEROS;
+        }
+    }
+    return FALLO;
+}
+
+/**
+ * traducir_bloque_inodo
+ * Convierte un bloque lógico en físico. Si reservar==1, asigna espacio si no existe.
+ */
+int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned char reservar) {
+    struct inodo inodo;
+    unsigned int ptr, ptr_ant;
+    int salvar_inodo = 0;
+    unsigned int buffer[NPUNTEROS];
+    int nRangoBL, nivel_punteros, indice;
+
+    // Leemos el inodo del disco
+    if (leer_inodo(ninodo, &inodo) == FALLO) return FALLO;
+
+    // Obtenemos en qué rango cae el bloque lógico y el puntero inicial
+    ptr = 0;
+    nRangoBL = obtener_nRangoBL(&inodo, nblogico, &ptr);
+    nivel_punteros = nRangoBL; // Empezamos por el nivel más alto
+
+    // Iteramos bajando niveles hasta llegar a los datos (nivel 0 implícito al salir del while)
+    while (nivel_punteros > 0) {
+        if (ptr == 0) { // Hueco en los punteros intermedios
+            if (reservar == 0) return FALLO; // Error si solo consultamos
+
+            // Reservar bloque de punteros y poner a 0
+            ptr = reservar_bloque();
+            inodo.numBloquesOcupados++;
+            inodo.ctime = time(NULL);
+            salvar_inodo = 1; // Habrá que guardar cambios en el inodo al final
+            
+            // Si el bloque nuevo cuelga directamente del inodo
+            if (nivel_punteros == nRangoBL) {
+                inodo.punterosIndirectos[nRangoBL - 1] = ptr;
+                printf("[traducir_bloque_inodo() -> inodo.punterosIndirectos[%d] = %d (reservado BF %d para punteros_nivel%d)]\n", 
+                        nRangoBL - 1, ptr, ptr, nivel_punteros);
+            } else { 
+                // Si cuelga de otro bloque de punteros, actualizamos el buffer anterior y lo guardamos
+                buffer[indice] = ptr;
+                printf("[traducir_bloque_inodo() -> punteros_nivel%d [%d] = %d (reservado BF %d para punteros_nivel%d)]\n", 
+                       nivel_punteros + 1, indice, ptr, ptr, nivel_punteros);
+                bwrite(ptr_ant, buffer);
+            }
+            
+            // Inicializamos el nuevo bloque de punteros a 0 en memoria y disco
+            memset(buffer, 0, BLOCKSIZE); 
+        } else {
+            // Si el bloque ya existía, lo leemos
+            bread(ptr, buffer);
+        }
+
+        // Preparamos para el siguiente nivel
+        indice = obtener_indice(nblogico, nivel_punteros);
+        ptr_ant = ptr;         // Guardamos el bloque actual (padre)
+        ptr = buffer[indice];  // Avanzamos al siguiente puntero (hijo)
+        nivel_punteros--;
+    }
+
+    // Al salir del bucle, ptr contiene la dirección del bloque de DATOS (o 0 si no existe)
+    if (ptr == 0) {
+        if (reservar == 0) return FALLO; // Error lectura lectura
+
+        // Reservar bloque de DATOS
+        ptr = reservar_bloque();
+        inodo.numBloquesOcupados++;
+        inodo.ctime = time(NULL);
+        salvar_inodo = 1;
+
+        if (nRangoBL == 0) { // Directo
+            inodo.punterosDirectos[nblogico] = ptr;
+            printf("[traducir_bloque_inodo() -> inodo.punterosDirectos[%d] = %d (reservado BF %d para BL %d)]\n", 
+                   nblogico, ptr, ptr, nblogico);
+        } else { // Indirecto (ptr_ant tiene el bloque de punteros de nivel 1)
+            buffer[indice] = ptr;
+            printf("[traducir_bloque_inodo() -> punteros_nivel1 [%d] = %d (reservado BF %d para BL %d)]\n", 
+                   indice, ptr, ptr, nblogico);
+            bwrite(ptr_ant, buffer); // Salvamos el bloque de punteros padre
+        }
+    }
+
+    // Guardamos el inodo solo si hubo cambios
+    if (salvar_inodo) {
+        escribir_inodo(ninodo, &inodo);
+    }
+
+    return ptr; // Devolvemos el Nº de bloque físico
 }

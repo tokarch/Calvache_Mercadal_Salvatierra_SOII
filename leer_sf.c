@@ -52,59 +52,83 @@ int main(int argc, char **argv) {
     printf("totBloques = %d\n", SB.totBloques);
     printf("totInodos = %d\n", SB.totInodos);
 
-    // Verificación de tamaños
-    printf("\nsizeof struct superbloque: %lu\n", sizeof(struct superbloque));
-    printf("sizeof struct inodo: %lu\n", sizeof(struct inodo));
+    // // Verificación de tamaños
+    // printf("\nsizeof struct superbloque: %lu\n", sizeof(struct superbloque));
+    // printf("sizeof struct inodo: %lu\n", sizeof(struct inodo));
 
-    // Recorrido de inodos libres para verificar lista enlazada
-    printf("\nRECORRIDO LISTA INODOS LIBRES (Primeros 10)...\n");
+    // // Recorrido de inodos libres para verificar lista enlazada
+    // printf("\nRECORRIDO LISTA INODOS LIBRES (Primeros 10)...\n");
 
-    struct inodo inodo_aux;
-    // 1. Empezamos exactamente donde el Superbloque dice que está el primero libre
-    unsigned int inodo_actual = SB.posPrimerInodoLibre; 
+    // struct inodo inodo_aux;
+    // // 1. Empezamos exactamente donde el Superbloque dice que está el primero libre
+    // unsigned int inodo_actual = SB.posPrimerInodoLibre; 
 
-    for (int i = 0; i < 10; i++) {
-        printf("%d ", inodo_actual); // Imprimimos el inodo que estamos visitando
+    // for (int i = 0; i < 10; i++) {
+    //     printf("%d ", inodo_actual); // Imprimimos el inodo que estamos visitando
         
-        // 2. Lo traemos a RAM
-        leer_inodo(inodo_actual, &inodo_aux);
+    //     // 2. Lo traemos a RAM
+    //     leer_inodo(inodo_actual, &inodo_aux);
         
-        // 3. El siguiente paso en nuestro camino es lo que guarde su puntero
-        inodo_actual = inodo_aux.punterosDirectos[0];
+    //     // 3. El siguiente paso en nuestro camino es lo que guarde su puntero
+    //     inodo_actual = inodo_aux.punterosDirectos[0];
         
-        // 4. Medida de seguridad por si llegamos al final antes de tiempo
-        if (inodo_actual == UINT_MAX) {
-            printf("... (FIN)");
-            break;
-        }
-    }
-    printf("\n");
+    //     // 4. Medida de seguridad por si llegamos al final antes de tiempo
+    //     if (inodo_actual == UINT_MAX) {
+    //         printf("... (FIN)");
+    //         break;
+    //     }
+    // }
+    // printf("\n");
 
-    // 2. Test Reserva/Liberación Bloque
-    printf("\nRESERVAMOS UN BLOQUE Y LUEGO LO LIBERAMOS\n");
-    int nbloque = reservar_bloque();
-    bread(posSB, &SB); // Recargar SB para ver cambios
-    printf("Se ha reservado el bloque fisico n%d. Bloques libres: %d\n", nbloque, SB.cantBloquesLibres);
+    // // 2. Test Reserva/Liberación Bloque
+    // printf("\nRESERVAMOS UN BLOQUE Y LUEGO LO LIBERAMOS\n");
+    // int nbloque = reservar_bloque();
+    // bread(posSB, &SB); // Recargar SB para ver cambios
+    // printf("Se ha reservado el bloque fisico n%d. Bloques libres: %d\n", nbloque, SB.cantBloquesLibres);
     
-    liberar_bloque(nbloque);
+    // liberar_bloque(nbloque);
+    // bread(posSB, &SB);
+    // printf("Liberamos ese bloque. Bloques libres: %d\n", SB.cantBloquesLibres);
+
+    // // 3. Test Lectura de Bits (Metadatos)
+    // printf("\nMAPA DE BITS (Muestreo)\n");
+    // printf("posSB (%d) -> leer_bit(%d) = %d\n", posSB, posSB, leer_bit(posSB));
+    // printf("posPrimerBloqueMB (%d) -> leer_bit(%d) = %d\n", SB.posPrimerBloqueMB, SB.posPrimerBloqueMB, leer_bit(SB.posPrimerBloqueMB));
+    // printf("posUltimoBloqueAI (%d) -> leer_bit(%d) = %d\n", SB.posUltimoBloqueAI, SB.posUltimoBloqueAI, leer_bit(SB.posUltimoBloqueAI));
+    // printf("posPrimerBloqueDatos (%d) -> leer_bit(%d) = %d\n", SB.posPrimerBloqueDatos, SB.posPrimerBloqueDatos, leer_bit(SB.posPrimerBloqueDatos));
+    // printf("posUltimoBloqueDatos (%d) -> leer_bit(%d) = %d\n", SB.posUltimoBloqueDatos, SB.posUltimoBloqueDatos, leer_bit(SB.posUltimoBloqueDatos));
+
+    // // 4. Test Directorio Raíz
+    // struct inodo inodoRaiz;
+    // if (leer_inodo(SB.posInodoRaiz, &inodoRaiz) == EXITO) {
+    //     mostrar_inodo(&inodoRaiz, SB.posInodoRaiz);
+    // } else {
+    //     printf("Error al leer el inodo raiz.\n");
+    // }
+
+    // --- TEST NIVEL 4 ---
+    printf("\nINODO 1. TRADUCCION DE LOS BLOQUES LOGICOS 8, 204, 30.004, 400.004 y 468.750\n");
+    
+    // 1. Reservamos un inodo artificialmente para pruebas (será el inodo 1)
+    int ninodo = reservar_inodo('f', 6); 
+
+    // 2. Traducimos bloques lógicos forzando reserva (reservar=1)
+    // Esto creará la estructura de punteros
+    traducir_bloque_inodo(ninodo, 8, 1);
+    traducir_bloque_inodo(ninodo, 204, 1);
+    traducir_bloque_inodo(ninodo, 30004, 1);
+    traducir_bloque_inodo(ninodo, 400004, 1);
+    traducir_bloque_inodo(ninodo, 468750, 1);
+
+    // 3. Mostramos el estado final del inodo
+    printf("\nDATOS DEL INODO RESERVADO %d\n", ninodo);
+    struct inodo inodo;
+    leer_inodo(ninodo, &inodo);
+    mostrar_inodo(&inodo, ninodo);
+    
+    // Mostrar SB final para ver consumo de bloques
     bread(posSB, &SB);
-    printf("Liberamos ese bloque. Bloques libres: %d\n", SB.cantBloquesLibres);
-
-    // 3. Test Lectura de Bits (Metadatos)
-    printf("\nMAPA DE BITS (Muestreo)\n");
-    printf("posSB (%d) -> leer_bit(%d) = %d\n", posSB, posSB, leer_bit(posSB));
-    printf("posPrimerBloqueMB (%d) -> leer_bit(%d) = %d\n", SB.posPrimerBloqueMB, SB.posPrimerBloqueMB, leer_bit(SB.posPrimerBloqueMB));
-    printf("posUltimoBloqueAI (%d) -> leer_bit(%d) = %d\n", SB.posUltimoBloqueAI, SB.posUltimoBloqueAI, leer_bit(SB.posUltimoBloqueAI));
-    printf("posPrimerBloqueDatos (%d) -> leer_bit(%d) = %d\n", SB.posPrimerBloqueDatos, SB.posPrimerBloqueDatos, leer_bit(SB.posPrimerBloqueDatos));
-    printf("posUltimoBloqueDatos (%d) -> leer_bit(%d) = %d\n", SB.posUltimoBloqueDatos, SB.posUltimoBloqueDatos, leer_bit(SB.posUltimoBloqueDatos));
-
-    // 4. Test Directorio Raíz
-    struct inodo inodoRaiz;
-    if (leer_inodo(SB.posInodoRaiz, &inodoRaiz) == EXITO) {
-        mostrar_inodo(&inodoRaiz, SB.posInodoRaiz);
-    } else {
-        printf("Error al leer el inodo raiz.\n");
-    }
+    printf("\nSB.posPrimerInodoLibre = %d\n", SB.posPrimerInodoLibre);
 
     if (bumount() == FALLO) return FALLO;
     return EXITO;
