@@ -45,18 +45,18 @@ struct superbloque {
 struct inodo {
     unsigned char tipo;             // 'l': libre, 'd': directorio, 'f': fichero
     unsigned char permisos;         // rwx...
-    unsigned char reservado_alineacion[6]; 
+    unsigned char reservado_alineacion[6]; // Microprocesador de 64 bits
 
-    time_t atime;                   // Último acceso
-    time_t mtime;                   // Última modificación
+    time_t atime;                   // Último acceso a datos
+    time_t mtime;                   // Última modificación de datos
     time_t ctime;                   // Cambio de estado (metadatos)
     time_t btime;                   // Creación (birth) (opcional según PDF, pero útil)
 
     unsigned int nlinks;            // Enlaces apuntando a este inodo
-    unsigned int tamEnBytesLog;     // Tamaño lógico (EOF)
-    unsigned int numBloquesOcupados;// Bloques físicos ocupados
+    unsigned int tamEnBytesLog;     // Tamaño en bytes lógicos (EOF)
+    unsigned int numBloquesOcupados;// Bloques físicos ocupados en zona de datos
 
-    unsigned int punterosDirectos[12];
+    unsigned int punterosDirectos[12];  // 12 punteros directos
     unsigned int punterosIndirectos[3]; // Simple, Doble, Triple
 
     // Relleno para asegurar 128 bytes exactos.

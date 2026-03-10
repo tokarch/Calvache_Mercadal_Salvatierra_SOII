@@ -88,18 +88,16 @@ int initMB() {
             if (bytesEscritos < bytesCompletos) {
                 buffer[j] = 0xFF; // 11111111 -> Todo ocupado
                 bytesEscritos++;
-            } else if (bytesEscritos == bytesCompletos && bitsRestantes > 0) {
+            } else if (bytesEscritos == bytesCompletos) {
                 // Último byte parcial. Ejemplo: si bitsRestantes=3 -> 11100000
                 // Usamos desplazamiento de bits para crear la máscara
                 unsigned char mascara = 0;
-                for (int k = 0; k < bitsRestantes; k++) {
-                   mascara |= (1 << (7 - k));
+                if (bitsRestantes > 0) {
+                    mascara = (unsigned char)(0xFF << (8 - bitsRestantes)); // Desplazamos y enmascaramos para quedarnos solo con los bits necesarios
                 }
-                buffer[j] = mascara;
+                buffer[j] = mascara; // Si no quedan bits restantes, la mascara sera 0
                 bytesEscritos++; // Ya hemos "gastado" la parte de bits
                 bitsRestantes = 0; // No quedan bits por marcar
-            } else {
-                buffer[j] = 0x00; // El resto son bloques de datos libres
             }
         }
         // Escribimos el bloque del MB modificado
@@ -122,6 +120,7 @@ int initAI() {
     if (bread(posSB, &SB) == FALLO) return FALLO;
 
     struct inodo inodos[BLOCKSIZE / INODOSIZE];
+    memset(inodos, 0, sizeof(inodos)); // Inicializa todo el bloque a 0 para evitar bytes indeterminados
     unsigned int contInodos = SB.posPrimerInodoLibre + 1; // El siguiente al 0 es el 1
     unsigned int inodoAbsoluto = 0; // Para saber qué inodo estamos tratando realmente
     // Recorremos todos los bloques del AI
@@ -135,6 +134,7 @@ int initAI() {
                 contInodos++;
             } else {
                 inodos[j].punterosDirectos[0] = UINT_MAX; // Fin de la lista
+                // Si hay slots sobrantes, también los marcamos como fin de lista para evitar confusiones
             }
             inodoAbsoluto++;
         }
