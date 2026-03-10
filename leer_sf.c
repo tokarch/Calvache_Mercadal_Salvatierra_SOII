@@ -52,33 +52,23 @@ int main(int argc, char **argv) {
     printf("totBloques = %d\n", SB.totBloques);
     printf("totInodos = %d\n", SB.totInodos);
 
-    // // Verificación de tamaños
-    // printf("\nsizeof struct superbloque: %lu\n", sizeof(struct superbloque));
-    // printf("sizeof struct inodo: %lu\n", sizeof(struct inodo));
+    // Verificación de tamaños
+    printf("\nsizeof struct superbloque: %lu\n", sizeof(struct superbloque));
+    printf("sizeof struct inodo: %lu\n", sizeof(struct inodo));
 
-    // // Recorrido de inodos libres para verificar lista enlazada
-    // printf("\nRECORRIDO LISTA INODOS LIBRES (Primeros 10)...\n");
+    // Recorrido de inodos libres para verificar lista enlazada
+    printf("\nRECORRIDO LISTA INODOS LIBRES (Primeros 10)...\n");
 
-    // struct inodo inodo_aux;
-    // // 1. Empezamos exactamente donde el Superbloque dice que está el primero libre
-    // unsigned int inodo_actual = SB.posPrimerInodoLibre; 
+    struct inodo inodo_aux;
+    // 1. Empezamos exactamente donde el Superbloque dice que está el primero libre
+    unsigned int inodo_actual = SB.posPrimerInodoLibre; 
 
-    // for (int i = 0; i < 10; i++) {
-    //     printf("%d ", inodo_actual); // Imprimimos el inodo que estamos visitando
-        
-    //     // 2. Lo traemos a RAM
-    //     leer_inodo(inodo_actual, &inodo_aux);
-        
-    //     // 3. El siguiente paso en nuestro camino es lo que guarde su puntero
-    //     inodo_actual = inodo_aux.punterosDirectos[0];
-        
-    //     // 4. Medida de seguridad por si llegamos al final antes de tiempo
-    //     if (inodo_actual == UINT_MAX) {
-    //         printf("... (FIN)");
-    //         break;
-    //     }
-    // }
-    // printf("\n");
+    while (inodo_actual != UINT_MAX) {
+        leer_inodo(inodo_actual, &inodo_aux);
+        inodo_actual = inodo_aux.punterosDirectos[0]; // El siguiente libre está en el puntero directo 0
+        printf("%d ", inodo_actual); // Imprimimos el inodo al que apunta
+    }
+    printf("\n");
 
     // // 2. Test Reserva/Liberación Bloque
     // printf("\nRESERVAMOS UN BLOQUE Y LUEGO LO LIBERAMOS\n");
@@ -106,6 +96,7 @@ int main(int argc, char **argv) {
     //     printf("Error al leer el inodo raiz.\n");
     // }
 
+    /*
     // --- TEST NIVEL 4 ---
     printf("\nINODO 1. TRADUCCION DE LOS BLOQUES LOGICOS 8, 204, 30.004, 400.004 y 468.750\n");
     
@@ -128,7 +119,7 @@ int main(int argc, char **argv) {
     
     // Mostrar SB final para ver consumo de bloques
     bread(posSB, &SB);
-    printf("\nSB.posPrimerInodoLibre = %d\n", SB.posPrimerInodoLibre);
+    printf("\nSB.posPrimerInodoLibre = %d\n", SB.posPrimerInodoLibre);*/
 
     if (bumount() == FALLO) return FALLO;
     return EXITO;
