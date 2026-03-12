@@ -10,7 +10,7 @@
 /**
  * tamMB
  * ------
- * Función para calcular el tamaño en bloques del Mapa de Bits.
+ * Calcula el tamaño en bloques del Mapa de Bits.
  * Parámetros:
  * - nbloques: número total de bloques del disco.
  * Retorno:
@@ -31,7 +31,7 @@ int tamMB(unsigned int nbloques) {
 /**
  * tamAI
  * ------
- * Función para calcular el tamaño en bloques del Array de Inodos.
+ * Calcula el tamaño en bloques del Array de Inodos.
  * Parámetros:
  * - ninodos: número total de inodos del disco.
  * Retorno:
@@ -51,16 +51,15 @@ int tamAI(unsigned int ninodos) {
 /**
  * initSB
  * ------
- * Función para inicializar el Superbloque.
+ * Inicializa el Superbloque en disco.
  * Parámetros:
  * - nbloques: número total de bloques del disco.
  * - ninodos: número total de inodos del disco.
  * Retorno:
- * - Devuelve el descriptor del fichero o FALLO (-1) en caso de error.
+ * - Devuelve EXITO (0) o FALLO (-1).
  * Llama a: tamMB(), tamAI(), bwrite()
  * Es llamada por: mi_mkfs()
  */
-// Inicializa el Superbloque
 int initSB(unsigned int nbloques, unsigned int ninodos) {
     struct superbloque SB;
 
@@ -94,15 +93,14 @@ int initSB(unsigned int nbloques, unsigned int ninodos) {
 /**
  * initMB
  * ------
- * Función para inicializar el Mapa de Bits.
+ * Inicializa el Mapa de Bits marcando los bloques reservados para metadatos.
  * Parámetros:
  * - Ninguno.
  * Retorno:
- * - Devuelve EXITO (0) o FALLO (-1) en caso de error.
+ * - Devuelve EXITO (0) o FALLO (-1).
  * Llama a: bread(), memset(), bwrite()
  * Es llamada por: mi_mkfs()
  */
-// Inicializa el Mapa de Bits
 int initMB() {
     // Leemos el SB para saber las dimensiones
     struct superbloque SB;
@@ -160,11 +158,11 @@ int initMB() {
 /**
  * initAI
  * ------
- * Función para inicializar el Array de Inodos.
+ * Inicializa el Array de Inodos y crea la lista enlazada de inodos libres.
  * Parámetros:
  * - Ninguno.
  * Retorno:
- * - Devuelve EXITO (0) o FALLO (-1) en caso de error.
+ * - Devuelve EXITO (0) o FALLO (-1).
  * Llama a: bread(), memset(), bwrite()
  * Es llamada por: mi_mkfs()
  */
@@ -203,21 +201,29 @@ int initAI() {
 
 /**
  * escribir_bit
+ * ------------
  * Escribe un valor (0 o 1) en el bit correspondiente al bloque físico indicado.
+ * Parámetros:
+ * - nbloque: Número de bloque físico.
+ * - bit: Valor a escribir (0 o 1).
+ * Retorno:
+ * - Devuelve EXITO (0) o FALLO (-1).
+ * Llama a: bread(), bwrite()
+ * Es llamada por: reservar_bloque(), liberar_bloque()
  */
 int escribir_bit(unsigned int nbloque, unsigned int bit) {
     struct superbloque SB;
     if (bread(posSB, &SB) == FALLO) return FALLO;
 
-    unsigned int posbyte = nbloque / 8;
-    unsigned int posbit = nbloque % 8;
-    unsigned int nbloqueMB = posbyte / BLOCKSIZE;
-    unsigned int nbloqueabs = SB.posPrimerBloqueMB + nbloqueMB;
+    unsigned int posbyteMB = nbloque / 8; // Posición de byte en el MB (mapa de bits)
+    unsigned int posbit = nbloque % 8; // Posición del bit dentro del byte (0-7)
+    unsigned int nbloqueMB = posbyteMB / BLOCKSIZE; // Bloque del MB donde se encuentra el byte (el bloque 0 es el primero del MB)
+    unsigned int nbloqueabs = SB.posPrimerBloqueMB + nbloqueMB; // Bloque absoluto en el disco donde se encuentra el byte del MB
 
     unsigned char bufferMB[BLOCKSIZE];
     if (bread(nbloqueabs, bufferMB) == FALLO) return FALLO;
 
-    posbyte = posbyte % BLOCKSIZE; // Ajuste dentro del buffer
+    unsigned int posbyte = posbyteMB % BLOCKSIZE; // Ajuste dentro del buffer
 
     unsigned char mascara = 128; // 10000000
     mascara >>= posbit; // Desplazamos el 1 a la posición correcta
@@ -234,32 +240,44 @@ int escribir_bit(unsigned int nbloque, unsigned int bit) {
 
 /**
  * leer_bit
- * Lee el valor del bit correspondiente al bloque físico indicado.
+ * --------
+ * Lee el valor del bit correspondiente al bloque físico indicado y lo devuelve.
+ * Parámetros:
+ * - nbloque: Número de bloque físico.
+ * Retorno:
+ * - Devuelve el bit (0 o 1) o FALLO (-1) en caso de error.
+ * Llama a: bread()
+ * Es llamada por: reservar_bloque(), liberar_bloque(), otros
  */
 char leer_bit(unsigned int nbloque) {
     struct superbloque SB;
     if (bread(posSB, &SB) == FALLO) return FALLO;
 
-    unsigned int posbyte = nbloque / 8;
+    unsigned int posbyteMB = nbloque / 8;
     unsigned int posbit = nbloque % 8;
-    unsigned int nbloqueMB = posbyte / BLOCKSIZE;
+    unsigned int nbloqueMB = posbyteMB / BLOCKSIZE;
     unsigned int nbloqueabs = SB.posPrimerBloqueMB + nbloqueMB;
 
     unsigned char bufferMB[BLOCKSIZE];
     if (bread(nbloqueabs, bufferMB) == FALLO) return FALLO;
 
-    posbyte = posbyte % BLOCKSIZE;
+    unsigned int posbyte = posbyteMB % BLOCKSIZE; // Lo ubicamos en su bloque correspondiente
 
     unsigned char mascara = 128; // 10000000
     mascara >>= posbit;
     mascara &= bufferMB[posbyte]; // Filtramos el bit
     
-    return (mascara >> (7 - posbit)); // Lo movemos al final para devolver 0 o 1
+    return (mascara >>= (7 - posbit)); // Lo movemos al final para devolver 0 o 1
 }
 
 /**
  * reservar_bloque
+ * ---------------
  * Encuentra el primer bloque libre en el MB, lo marca como ocupado y devuelve su ID.
+ * Retorno:
+ * - Número de bloque reservado o FALLO (-1) en caso de error.
+ * Llama a: bread(), escribir_bit(), bwrite()
+ * Es llamada por: traducir_bloque_inodo(), otros
  */
 int reservar_bloque() {
     struct superbloque SB;
@@ -323,14 +341,19 @@ int reservar_bloque() {
 
 /**
  * liberar_bloque
+ * --------------
  * Libera un bloque marcado en el MB.
+ * Parámetros:
+ * - nbloque: número de bloque físico a liberar.
+ * Retorno:
+ * - Devuelve el número de bloque liberado o FALLO (-1) en caso de error.
+ * Llama a: escribir_bit(), bread(), bwrite()
  */
 int liberar_bloque(unsigned int nbloque) {
     if (escribir_bit(nbloque, 0) == FALLO) return FALLO;
 
     struct superbloque SB;
     if (bread(posSB, &SB) == FALLO) return FALLO;
-
     SB.cantBloquesLibres++;
     if (bwrite(posSB, &SB) == FALLO) return FALLO;
 
@@ -339,7 +362,14 @@ int liberar_bloque(unsigned int nbloque) {
 
 /**
  * escribir_inodo
+ * --------------
  * Escribe una estructura inodo en el array de inodos del disco.
+ * Parámetros:
+ * - ninodo: índice del inodo a escribir.
+ * - inodo: puntero a la estructura inodo con los datos.
+ * Retorno:
+ * - EXITO (0) o FALLO (-1).
+ * Llama a: bread(), bwrite()
  */
 int escribir_inodo(unsigned int ninodo, struct inodo *inodo) {
     struct superbloque SB;
@@ -361,7 +391,14 @@ int escribir_inodo(unsigned int ninodo, struct inodo *inodo) {
 
 /**
  * leer_inodo
+ * ----------
  * Lee un inodo del disco y lo guarda en la variable pasada por referencia.
+ * Parámetros:
+ * - ninodo: índice del inodo a leer.
+ * - inodo: puntero donde se almacenará la estructura leída.
+ * Retorno:
+ * - EXITO (0) o FALLO (-1).
+ * Llama a: bread()
  */
 int leer_inodo(unsigned int ninodo, struct inodo *inodo) {
     struct superbloque SB;
@@ -381,7 +418,14 @@ int leer_inodo(unsigned int ninodo, struct inodo *inodo) {
 
 /**
  * reservar_inodo
+ * ---------------
  * Reserva el primer inodo libre de la lista enlazada, lo inicializa y devuelve su ID.
+ * Parámetros:
+ * - tipo: tipo de inodo a crear.
+ * - permisos: permisos iniciales del inodo.
+ * Retorno:
+ * - Índice del inodo reservado o FALLO (-1).
+ * Llama a: leer_inodo(), escribir_inodo(), bwrite()
  */
 int reservar_inodo(unsigned char tipo, unsigned char permisos) {
     struct superbloque SB;
