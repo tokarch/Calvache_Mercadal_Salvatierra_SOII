@@ -63,10 +63,12 @@ int main(int argc, char **argv) {
     // 1. Empezamos exactamente donde el Superbloque dice que está el primero libre
     unsigned int inodo_actual = SB.posPrimerInodoLibre; 
 
-    while (inodo_actual != UINT_MAX) {
+    int counter = 0;
+    while (inodo_actual != UINT_MAX && counter < 10) {
         leer_inodo(inodo_actual, &inodo_aux);
         inodo_actual = inodo_aux.punterosDirectos[0]; // El siguiente libre está en el puntero directo 0
         printf("%d ", inodo_actual); // Imprimimos el inodo al que apunta
+        counter++;
     }
     printf("\n");
 
