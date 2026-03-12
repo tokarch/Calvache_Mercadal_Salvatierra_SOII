@@ -7,7 +7,17 @@
 // FUNCIONES NIVEL 2
 // ==============================================================================
 
-// Calcula el tamaño en bloques del Mapa de Bits
+/**
+ * tamMB
+ * ------
+ * Función para calcular el tamaño en bloques del Mapa de Bits.
+ * Parámetros:
+ * - nbloques: número total de bloques del disco.
+ * Retorno:
+ * - Devuelve el tamaño en bloques del Mapa de Bits.
+ * Llama a: -
+ * Es llamada por: initSB()
+ */
 int tamMB(unsigned int nbloques) {
     // Cada bloque del MB gestiona BLOCKSIZE * 8 bloques del disco.
     // Fórmula: (nbloques / 8) / BLOCKSIZE. Si hay resto, sumamos 1 bloque.
@@ -18,7 +28,17 @@ int tamMB(unsigned int nbloques) {
     return tam;
 }
 
-// Calcula el tamaño en bloques del Array de Inodos
+/**
+ * tamAI
+ * ------
+ * Función para calcular el tamaño en bloques del Array de Inodos.
+ * Parámetros:
+ * - ninodos: número total de inodos del disco.
+ * Retorno:
+ * - Devuelve el tamaño en bloques del Array de Inodos.
+ * Llama a: -
+ * Es llamada por: initSB()
+ */
 int tamAI(unsigned int ninodos) {
     // Caben (BLOCKSIZE / INODOSIZE) inodos en un bloque.
     int tam = (ninodos * INODOSIZE) / BLOCKSIZE;
@@ -28,6 +48,18 @@ int tamAI(unsigned int ninodos) {
     return tam;
 }
 
+/**
+ * initSB
+ * ------
+ * Función para inicializar el Superbloque.
+ * Parámetros:
+ * - nbloques: número total de bloques del disco.
+ * - ninodos: número total de inodos del disco.
+ * Retorno:
+ * - Devuelve el descriptor del fichero o FALLO (-1) en caso de error.
+ * Llama a: tamMB(), tamAI(), bwrite()
+ * Es llamada por: mi_mkfs()
+ */
 // Inicializa el Superbloque
 int initSB(unsigned int nbloques, unsigned int ninodos) {
     struct superbloque SB;
@@ -59,6 +91,17 @@ int initSB(unsigned int nbloques, unsigned int ninodos) {
     return EXITO;
 }
 
+/**
+ * initMB
+ * ------
+ * Función para inicializar el Mapa de Bits.
+ * Parámetros:
+ * - Ninguno.
+ * Retorno:
+ * - Devuelve EXITO (0) o FALLO (-1) en caso de error.
+ * Llama a: bread(), memset(), bwrite()
+ * Es llamada por: mi_mkfs()
+ */
 // Inicializa el Mapa de Bits
 int initMB() {
     // Leemos el SB para saber las dimensiones
@@ -114,7 +157,17 @@ int initMB() {
     return EXITO;
 }
 
-// Inicializa el Array de Inodos
+/**
+ * initAI
+ * ------
+ * Función para inicializar el Array de Inodos.
+ * Parámetros:
+ * - Ninguno.
+ * Retorno:
+ * - Devuelve EXITO (0) o FALLO (-1) en caso de error.
+ * Llama a: bread(), memset(), bwrite()
+ * Es llamada por: mi_mkfs()
+ */
 int initAI() {
     struct superbloque SB;
     if (bread(posSB, &SB) == FALLO) return FALLO;

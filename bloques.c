@@ -16,7 +16,7 @@ static int descriptor = 0;
  * Retorno:
  * - Devuelve el descriptor del fichero o FALLO (-1) en caso de error.
  * Llama a: umask(), open(), perror()
- * Es llamada por: mi_mkfs()
+ * Es llamada por: mi_mkfs(), leer_sf()
  */
 int bmount(const char *camino) {
     // Configuración de permisos: rw-rw-rw- (0666)
@@ -46,7 +46,7 @@ int bmount(const char *camino) {
  * Retorno:
  * - EXITO (0) si se cerró bien, FALLO (-1) si hubo error.
  * Llama a: close(), perror()
- * Es llamada por: mi_mkfs()
+ * Es llamada por: mi_mkfs(), leer_sf
  */
 int bumount() {
     // Intentamos cerrar el descriptor actual
@@ -68,7 +68,7 @@ int bumount() {
  * Retorno:
  * - Número de bytes escritos (debería ser BLOCKSIZE) o FALLO (-1).
  * Llama a: lseek(), write(), perror()
- * Es llamada por: mi_mkfs()
+ * Es llamada por: mi_mkfs(), leer_sf()
  */
 int bwrite(unsigned int nbloque, const void *buf) {
     // 1. Calcular el desplazamiento (offset) en bytes
@@ -102,7 +102,7 @@ int bwrite(unsigned int nbloque, const void *buf) {
  * Retorno:
  * - Número de bytes leídos o FALLO (-1).
  * Llama a: lseek(), read(), perror()
- * Es llamada por: 
+ * Es llamada por: leer_sf()
  */
 int bread(unsigned int nbloque, void *buf) {
     // 1. Calcular el desplazamiento
