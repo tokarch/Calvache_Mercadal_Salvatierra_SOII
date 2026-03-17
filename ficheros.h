@@ -7,14 +7,15 @@
 #include "ficheros_basico.h"
 
 // Estructura para devolver metadatos de un fichero (similar a stat de Linux)
-struct STAT {
-    unsigned char tipo;     // Tipo de fichero
-    unsigned char permisos; // Permisos
-    time_t atime;           // Último acceso
-    time_t mtime;           // Última modificación
-    time_t ctime;           // Último cambio de metadatos
-    unsigned int nlinks;    // Número de enlaces
-    unsigned int tamEnBytesLog; // Tamaño en bytes lógicos
+struct STAT
+{
+    unsigned char tipo;              // Tipo de fichero
+    unsigned char permisos;          // Permisos
+    time_t atime;                    // Último acceso
+    time_t mtime;                    // Última modificación
+    time_t ctime;                    // Último cambio de metadatos
+    unsigned int nlinks;             // Número de enlaces
+    unsigned int tamEnBytesLog;      // Tamaño en bytes lógicos
     unsigned int numBloquesOcupados; // Bloques físicos ocupados
 };
 

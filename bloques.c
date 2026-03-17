@@ -18,10 +18,11 @@ static int descriptor = 0;
  * Llama a: umask(), open(), perror()
  * Es llamada por: mi_mkfs(), leer_sf()
  */
-int bmount(const char *camino) {
+int bmount(const char *camino)
+{
     // Configuración de permisos: rw-rw-rw- (0666)
     // Usamos umask(0000) para asegurar que el sistema no restrinja los permisos solicitados.
-    umask(0000); 
+    umask(0000);
 
     // Abrimos el fichero. Flags:
     // O_RDWR: Lectura y escritura.
@@ -29,7 +30,8 @@ int bmount(const char *camino) {
     // 0666: Permisos de lectura/escritura para usuario, grupo y otros.
     descriptor = open(camino, O_RDWR | O_CREAT, 0666);
 
-    if (descriptor == -1) {
+    if (descriptor == -1)
+    {
         perror(RED "Error en bmount al abrir el fichero" RESET);
         return FALLO;
     }
@@ -48,13 +50,15 @@ int bmount(const char *camino) {
  * Llama a: close(), perror()
  * Es llamada por: mi_mkfs(), leer_sf
  */
-int bumount() {
+int bumount()
+{
     // Intentamos cerrar el descriptor actual
-    if (close(descriptor) == -1) {
+    if (close(descriptor) == -1)
+    {
         perror(RED "Error en bumount al cerrar el descriptor" RESET);
         return FALLO;
     }
-    
+
     return EXITO;
 }
 
@@ -70,12 +74,14 @@ int bumount() {
  * Llama a: lseek(), write(), perror()
  * Es llamada por: mi_mkfs(), leer_sf()
  */
-int bwrite(unsigned int nbloque, const void *buf) {
+int bwrite(unsigned int nbloque, const void *buf)
+{
     // 1. Calcular el desplazamiento (offset) en bytes
     off_t desplazamiento = (off_t)nbloque * BLOCKSIZE;
 
     // 2. Mover el puntero del fichero a la posición correcta
-    if (lseek(descriptor, desplazamiento, SEEK_SET) == (off_t)-1) {
+    if (lseek(descriptor, desplazamiento, SEEK_SET) == (off_t)-1)
+    {
         perror(RED "Error en bwrite al mover el puntero (lseek)" RESET);
         return FALLO;
     }
@@ -83,7 +89,8 @@ int bwrite(unsigned int nbloque, const void *buf) {
     // 3. Escribir el contenido del buffer en el fichero
     size_t bytes_escritos = write(descriptor, buf, BLOCKSIZE);
 
-    if (bytes_escritos == -1) {
+    if (bytes_escritos == -1)
+    {
         perror(RED "Error en bwrite al escribir (write)" RESET);
         return FALLO;
     }
@@ -104,12 +111,14 @@ int bwrite(unsigned int nbloque, const void *buf) {
  * Llama a: lseek(), read(), perror()
  * Es llamada por: leer_sf()
  */
-int bread(unsigned int nbloque, void *buf) {
+int bread(unsigned int nbloque, void *buf)
+{
     // 1. Calcular el desplazamiento
     off_t desplazamiento = (off_t)nbloque * BLOCKSIZE;
 
     // 2. Posicionar el puntero
-    if (lseek(descriptor, desplazamiento, SEEK_SET) == (off_t)-1) {
+    if (lseek(descriptor, desplazamiento, SEEK_SET) == (off_t)-1)
+    {
         perror(RED "Error en bread al mover el puntero (lseek)" RESET);
         return FALLO;
     }
@@ -117,7 +126,8 @@ int bread(unsigned int nbloque, void *buf) {
     // 3. Leer del fichero y guardar en buf
     size_t bytes_leidos = read(descriptor, buf, BLOCKSIZE);
 
-    if (bytes_leidos == -1) {
+    if (bytes_leidos == -1)
+    {
         perror(RED "Error en bread al leer (read)" RESET);
         return FALLO;
     }

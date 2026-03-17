@@ -3,7 +3,8 @@
 
 #include "ficheros_basico.h"
 
-void mostrar_inodo(struct inodo *inodo, int ninodo) {
+void mostrar_inodo(struct inodo *inodo, int ninodo)
+{
     struct tm *ts;
     char atime[80], mtime[80], ctime[80], btime[80];
     ts = localtime(&inodo->atime);
@@ -26,16 +27,20 @@ void mostrar_inodo(struct inodo *inodo, int ninodo) {
     printf("numBloquesOcupados: %d\n", inodo->numBloquesOcupados);
 }
 
-int main(int argc, char **argv) {
-    if (argc != 2) {
+int main(int argc, char **argv)
+{
+    if (argc != 2)
+    {
         fprintf(stderr, RED "Sintaxis: %s <nombre_dispositivo>\n" RESET, argv[0]);
         return FALLO;
     }
 
-    if (bmount(argv[1]) == FALLO) return FALLO;
+    if (bmount(argv[1]) == FALLO)
+        return FALLO;
 
     struct superbloque SB;
-    if (bread(posSB, &SB) == FALLO) return FALLO;
+    if (bread(posSB, &SB) == FALLO)
+        return FALLO;
 
     // 1. Mostrar Superbloque
     printf(YELLOW "DATOS DEL SUPERBLOQUE\n" RESET);
@@ -61,13 +66,14 @@ int main(int argc, char **argv) {
 
     struct inodo inodo_aux;
     // 1. Empezamos exactamente donde el Superbloque dice que está el primero libre
-    unsigned int inodo_actual = SB.posPrimerInodoLibre; 
+    unsigned int inodo_actual = SB.posPrimerInodoLibre;
 
     int counter = 0;
-    while (inodo_actual != UINT_MAX && counter < 10) {
+    while (inodo_actual != UINT_MAX && counter < 10)
+    {
         leer_inodo(inodo_actual, &inodo_aux);
         inodo_actual = inodo_aux.punterosDirectos[0]; // El siguiente libre está en el puntero directo 0
-        printf("%d ", inodo_actual); // Imprimimos el inodo al que apunta
+        printf("%d ", inodo_actual);                  // Imprimimos el inodo al que apunta
         counter++;
     }
     printf("\n");
@@ -77,7 +83,7 @@ int main(int argc, char **argv) {
     // int nbloque = reservar_bloque();
     // bread(posSB, &SB); // Recargar SB para ver cambios
     // printf("Se ha reservado el bloque fisico n%d. Bloques libres: %d\n", nbloque, SB.cantBloquesLibres);
-    
+
     // liberar_bloque(nbloque);
     // bread(posSB, &SB);
     // printf("Liberamos ese bloque. Bloques libres: %d\n", SB.cantBloquesLibres);
@@ -101,9 +107,9 @@ int main(int argc, char **argv) {
     /*
     // --- TEST NIVEL 4 ---
     printf("\nINODO 1. TRADUCCION DE LOS BLOQUES LOGICOS 8, 204, 30.004, 400.004 y 468.750\n");
-    
+
     // 1. Reservamos un inodo artificialmente para pruebas (será el inodo 1)
-    int ninodo = reservar_inodo('f', 6); 
+    int ninodo = reservar_inodo('f', 6);
 
     // 2. Traducimos bloques lógicos forzando reserva (reservar=1)
     // Esto creará la estructura de punteros
@@ -118,11 +124,12 @@ int main(int argc, char **argv) {
     struct inodo inodo;
     leer_inodo(ninodo, &inodo);
     mostrar_inodo(&inodo, ninodo);
-    
+
     // Mostrar SB final para ver consumo de bloques
     bread(posSB, &SB);
     printf("\nSB.posPrimerInodoLibre = %d\n", SB.posPrimerInodoLibre);*/
 
-    if (bumount() == FALLO) return FALLO;
+    if (bumount() == FALLO)
+        return FALLO;
     return EXITO;
 }

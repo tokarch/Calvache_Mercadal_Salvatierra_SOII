@@ -3,8 +3,10 @@
 
 #define TAM_BUFFER 1500
 
-int main(int argc, char **argv) {
-    if (argc != 3) {
+int main(int argc, char **argv)
+{
+    if (argc != 3)
+    {
         fprintf(stderr, "Sintaxis: %s <nombre_dispositivo> <ninodo>\n", argv[0]);
         return FALLO;
     }
@@ -12,7 +14,8 @@ int main(int argc, char **argv) {
     char *nombre_dispositivo = argv[1];
     int ninodo = atoi(argv[2]);
 
-    if (bmount(nombre_dispositivo) == FALLO) return FALLO;
+    if (bmount(nombre_dispositivo) == FALLO)
+        return FALLO;
 
     // Leer fichero completo
     char buffer[TAM_BUFFER];
@@ -23,7 +26,8 @@ int main(int argc, char **argv) {
     memset(buffer, 0, TAM_BUFFER); // Limpiar buffer visualmente
 
     // Bucle de lectura
-    while ((leidos = mi_read_f(ninodo, buffer, offset, TAM_BUFFER)) > 0) {
+    while ((leidos = mi_read_f(ninodo, buffer, offset, TAM_BUFFER)) > 0)
+    {
         write(1, buffer, leidos); // Escribir en salida estándar (pantalla)
         total_leidos += leidos;
         offset += leidos;
