@@ -112,5 +112,5 @@ git checkout toni-rama
 Descargarse cambios de main a tu rama:
 git checkout main
 git pull origin main
-git checkout su-rama
+git checkout toni-rama
 git merge main
