@@ -85,7 +85,11 @@ int escribir_inodo(unsigned int ninodo, struct inodo *inodo);
 int leer_inodo(unsigned int ninodo, struct inodo *inodo);
 int reservar_inodo(unsigned char tipo, unsigned char permisos);
 
-// Funciones Nivel 4 (NUEVAS)
+// Funciones Nivel 4
 int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned char reservar);
+
+// Funciones Nivel 6 (NUEVAS)
+int liberar_inodo(unsigned int ninodo);
+int liberar_bloques_inodo(unsigned int primerBL, struct inodo *inodo);
 
 #endif // FICHEROS_BASICO_H

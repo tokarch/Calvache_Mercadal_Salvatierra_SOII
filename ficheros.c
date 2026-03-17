@@ -229,3 +229,50 @@ int mi_chmod_f(unsigned int ninodo, unsigned char permisos) {
 
     return EXITO;
 }
+
+// ==============================================================================
+// FUNCIONES NIVEL 6
+// ==============================================================================
+/**
+ * mi_truncar_f
+ * Trunca un fichero a nbytes, liberando los bloques excedentes.
+ */
+int mi_truncar_f(unsigned int ninodo, unsigned int nbytes) {
+    struct inodo inodo;
+    int primerBL;
+    int liberados;
+
+    if (leer_inodo(ninodo, &inodo) == FALLO) return FALLO;
+
+    // Verificar permisos escritura
+    if ((inodo.permisos & 2) != 2) {
+        fprintf(stderr, "Error: Sin permisos de escritura en inodo %d\n", ninodo);
+        return FALLO;
+    }
+
+    // No se puede truncar más allá del tamaño actual
+    if (nbytes > inodo.tamEnBytesLog) {
+        fprintf(stderr, "Error: No se puede truncar más allá del EOF\n");
+        return FALLO;
+    }
+
+    // Calcular el primer bloque lógico a liberar
+    if (nbytes % BLOCKSIZE == 0) {
+        primerBL = nbytes / BLOCKSIZE;
+    } else {
+        primerBL = nbytes / BLOCKSIZE + 1;
+    }
+
+    // Llamar a liberar bloques
+    liberados = liberar_bloques_inodo(primerBL, &inodo);
+
+    // Actualizar inodo
+    inodo.mtime = time(NULL);
+    inodo.ctime = time(NULL);
+    inodo.tamEnBytesLog = nbytes;
+    inodo.numBloquesOcupados -= liberados;
+
+    if (escribir_inodo(ninodo, &inodo) == FALLO) return FALLO;
+
+    return liberados;
+}
