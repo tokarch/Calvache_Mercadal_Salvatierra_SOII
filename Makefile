@@ -1,21 +1,57 @@
 CC=gcc
 CFLAGS=-c -g -Wall -std=gnu17
-#LDFLAGS=-pthread
+# Descomentamos pthread porque lo vas a necesitar seguro a partir del nivel de simulación
+LDFLAGS=-pthread
 
-SOURCES=mi_mkfs.c bloques.c ficheros_basico.c leer_sf.c #ficheros.c escribir.c leer.c truncar.c permitir.c directorios.c mi_mkdir.c mi_chmod.c mi_ls.c mi_link.c mi_escribir.c mi_cat.c mi_stat.c mi_rm.c semaforo_mutex_posix.c simulacion.c verificacion.c
-LIBRARIES=bloques.o ficheros_basico.o #ficheros.o directorios.o semaforo_mutex_posix.o
-INCLUDES=bloques.h ficheros_basico.h #ficheros.h directorios.h semaforo_mutex_posix.h simulacion.h
-PROGRAMS=mi_mkfs leer_sf #escribir leer truncar permitir mi_mkdir mi_chmod mi_ls mi_link mi_escribir mi_cat mi_stat mi_rm  simulacion verificacion
+# =========================================================================
+# CONFIGURACIÓN DE NIVELES
+# Uso: make LEVEL=7  (Compila hasta el nivel 7)
+# Si no se especifica LEVEL, compila todo por defecto (ej. nivel 7)
+# =========================================================================
+LEVEL ?= 7
+
+# -------------------------------------------------------------------------
+# NIVEL 1 - 3: Bases del sistema (Metadatos y Bloques)
+# -------------------------------------------------------------------------
+SOURCES = mi_mkfs.c bloques.c ficheros_basico.c leer_sf.c
+LIBRARIES = bloques.o ficheros_basico.o
+INCLUDES = bloques.h ficheros_basico.h
+PROGRAMS = mi_mkfs leer_sf
+
+# -------------------------------------------------------------------------
+# NIVEL 4 - 6: Ficheros y Punteros
+# -------------------------------------------------------------------------
+ifneq ($(filter $(LEVEL), 4 5 6 7),)
+    SOURCES += ficheros.c escribir.c leer.c truncar.c permitir.c
+    LIBRARIES += ficheros.o
+    INCLUDES += ficheros.h
+    PROGRAMS += escribir leer truncar permitir
+endif
+
+# -------------------------------------------------------------------------
+# NIVEL 7: Directorios y Comandos básicos
+# -------------------------------------------------------------------------
+ifneq ($(filter $(LEVEL), 7),)
+    SOURCES += directorios.c prueba_nivel7.c mi_mkdir.c mi_chmod.c mi_ls.c mi_link.c mi_escribir.c mi_cat.c mi_stat.c mi_rm.c
+    LIBRARIES += directorios.o
+    INCLUDES += directorios.h
+    PROGRAMS += prueba_nivel7 mi_mkdir mi_chmod mi_ls mi_link mi_escribir mi_cat mi_stat mi_rm
+endif
+
+# =========================================================================
+# REGLAS DE COMPILACIÓN
+# =========================================================================
 OBJS=$(SOURCES:.c=.o)
 
 all: $(OBJS) $(PROGRAMS)
 
-$(PROGRAMS): $(LIBRARIES) $(INCLUDES)
-	$(CC) $(LDFLAGS) $(LIBRARIES) $@.o -o $@ -lm  #l el -lm es para la poder usar pow()
+# Regla mejorada para enlazar los programas con sus dependencias
+$(PROGRAMS): %: %.o $(LIBRARIES)
+	$(CC) $(LDFLAGS) $(LIBRARIES) $< -o $@ -lm
 
 %.o: %.c $(INCLUDES)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 .PHONY: clean
 clean:
-	rm -rf *.o *~ $(PROGRAMS) disco* ext*  
+	rm -rf *.o *~ $(PROGRAMS) disco* ext*
