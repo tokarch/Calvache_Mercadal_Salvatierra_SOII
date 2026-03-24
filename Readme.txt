@@ -84,7 +84,7 @@ git push
 ---
 
 git pull (origin main)
-git checkout tu-rama
+git checkout toni-rama
 (programar)
 git add .
 git commit -m "Qué has hecho"
