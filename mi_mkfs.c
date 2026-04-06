@@ -62,11 +62,11 @@ int main(int argc, char **argv)
     if (initAI() == FALLO)
         return FALLO;
 
-    
     // --- NOVEDAD NIVEL 3: CREACIÓN DEL DIRECTORIO RAÍZ ---
     printf("Reservando inodo raiz...\n");
     // Reservamos inodo con tipo 'd' (directorio) y permisos 7 (rwx)
-    if (reservar_inodo('d', 7) == FALLO) {
+    if (reservar_inodo('d', 7) == FALLO)
+    {
         fprintf(stderr, "Error al reservar inodo raiz\n");
         bumount();
         return FALLO;
