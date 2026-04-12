@@ -11,6 +11,15 @@ AUTORES
 * Salvatierra Romero, Diego Jeroni
 */
 
+/**
+ * mostrar_inodo
+ * -------------
+ * Función auxiliar que muestra por pantalla los metadatos de un inodo formateando
+ * las marcas de tiempo (time_t) a cadenas de texto legibles.
+ * * Parámetros:
+ * - inodo: puntero a la estructura del inodo que se quiere mostrar.
+ * - ninodo: número de inodo (para imprimirlo en la cabecera del mensaje).
+ */
 void mostrar_inodo(struct inodo *inodo, int ninodo)
 {
     struct tm *ts;
@@ -35,22 +44,37 @@ void mostrar_inodo(struct inodo *inodo, int ninodo)
     printf("numBloquesOcupados: %d\n", inodo->numBloquesOcupados);
 }
 
+/**
+ * main (Comando leer_sf)
+ * ------
+ * Programa auxiliar de usuario para verificar el estado y la estructura del sistema de ficheros.
+ * Monta el dispositivo, lee el Superbloque (SB) y muestra por pantalla sus variables críticas.
+ * Contiene además bloques de código (comentados mediante #if) útiles para debuggear los distintos niveles.
+ * * Parámetros (Línea de comandos):
+ * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
+ * * Retorno:
+ * - Devuelve EXITO (0) si finaliza correctamente, o FALLO (-1) en caso de error.
+ * * Llama a: bmount(), bread(), bumount()
+ */
 int main(int argc, char **argv)
 {
+    // 1. Validar los argumentos de entrada
     if (argc != 2)
     {
         fprintf(stderr, RED "Sintaxis: %s <nombre_dispositivo>\n" RESET, argv[0]);
         return FALLO;
     }
 
+    // 2. Montar el dispositivo virtual
     if (bmount(argv[1]) == FALLO)
         return FALLO;
 
+    // 3. Leer el Superbloque
     struct superbloque SB;
     if (bread(posSB, &SB) == FALLO)
         return FALLO;
 
-    // 1. Mostrar Superbloque
+    // 4. Mostrar por pantalla los datos del Superbloque
     printf(YELLOW "DATOS DEL SUPERBLOQUE\n" RESET);
     printf("posPrimerBloqueMB = %d\n", SB.posPrimerBloqueMB);
     printf("posUltimoBloqueMB = %d\n", SB.posUltimoBloqueMB);
@@ -65,6 +89,7 @@ int main(int argc, char **argv)
     printf("totBloques = %d\n", SB.totBloques);
     printf("totInodos = %d\n", SB.totInodos);
 
+    // Bloques de DEBUG que se usaban en niveles anteriores
     /*
     #if DEBUGN2
 
@@ -179,6 +204,7 @@ int main(int argc, char **argv)
     #endif
     */
 
+    // 5. Desmontar el dispositivo virtual
     if (bumount() == FALLO)
         return FALLO;
     return EXITO;

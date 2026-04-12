@@ -11,8 +11,23 @@ AUTORES
 * Salvatierra Romero, Diego Jeroni
 */
 
+/**
+ * main (Comando truncar)
+ * ------
+ * Programa de usuario que permite reducir el tamaño de un fichero o liberarlo por completo.
+ * Si se especifica un tamaño de 0 bytes, se invoca a liberar_inodo(). 
+ * Si es superior a 0, se utiliza mi_truncar_f().
+ * * * Parámetros (Línea de comandos):
+ * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
+ * - argv[2]: Número del inodo a truncar.
+ * - argv[3]: Nuevo tamaño en bytes (nbytes).
+ * * * Retorno:
+ * - Devuelve EXITO (0) si finaliza correctamente, o FALLO (-1) en caso de error.
+ * * * Llama a: bmount(), liberar_inodo(), mi_truncar_f(), mi_stat_f(), ctime(), bumount()
+ */
 int main(int argc, char **argv)
 {
+    // 1. Verificar argumentos de la línea de comandos
     if (argc != 4)
     {
         fprintf(stderr, RED "Sintaxis: %s <nombre_dispositivo> <ninodo> <nbytes>\n" RESET, argv[0]);
@@ -23,21 +38,22 @@ int main(int argc, char **argv)
     int ninodo = atoi(argv[2]);
     int nbytes = atoi(argv[3]);
 
+    // 2. Montar el dispositivo
     if (bmount(nombre_dispositivo) == FALLO)
         return FALLO;
 
-    // Si nbytes es 0, probamos liberar_inodo()
+    // Si nbytes es 0, probamos liberar_inodo() (eliminación completa)
     if (nbytes == 0)
     {
         liberar_inodo(ninodo);
     }
-    // Si nbytes > 0, probamos mi_truncar_f()
+    // Si nbytes > 0, probamos mi_truncar_f() (truncado parcial)
     else
     {
         mi_truncar_f(ninodo, nbytes);
     }
 
-    // Mostramos estado final (usando mi_stat_f si el inodo sigue activo)
+    // 4. Mostramos estado final del inodo mediante mi_stat_f() para verificar cambios
     struct STAT stat;
     if (mi_stat_f(ninodo, &stat) != FALLO) {
         printf("\nDATOS DEL INODO %d:\n", ninodo);
@@ -53,6 +69,7 @@ int main(int argc, char **argv)
         fprintf(stderr, RED "Error al obtener stat del inodo %d\n" RESET, ninodo);
     }
 
+    // 5. Desmontar el dispositivo
     bumount();
     return EXITO;
 }

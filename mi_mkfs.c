@@ -12,10 +12,23 @@ AUTORES
 * Salvatierra Romero, Diego Jeroni
 */
 
+/**
+ * main (Comando mi_mkfs)
+ * ------
+ * Programa encargado de formatear e inicializar el dispositivo virtual.
+ * Llena el disco de ceros, inicializa el Superbloque, el Mapa de Bits, 
+ * el Array de Inodos y reserva el inodo correspondiente al directorio raíz.
+ * * Parámetros (Línea de comandos):
+ * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
+ * - argv[2]: Número total de bloques que tendrá el disco.
+ * * Retorno:
+ * - Devuelve EXITO (0) si finaliza correctamente, o FALLO (-1) en caso de error.
+ * * Llama a: bmount(), memset(), bwrite(), initSB(), initMB(), initAI(), reservar_inodo(), bumount()
+ */
 int main(int argc, char **argv)
 {
 
-    // Verificamos que los argumentos sean correctos
+    // 1. Verificamos que los argumentos sean correctos
     // Uso: ./mi_mkfs <nombre_dispositivo> <nbloques>
     if (argc != 3)
     {
@@ -28,20 +41,20 @@ int main(int argc, char **argv)
     int nbloques = atoi(argv[2]); // Convertimos el string de bloques a entero
     int ninodos = nbloques / 4;   // Heurística del enunciado
 
-    // 1. Montamos el dispositivo virtual
+    // 2. Montamos el dispositivo virtual
     if (bmount(nombre_dispositivo) == FALLO)
     {
         fprintf(stderr, RED "Error: No se pudo montar el dispositivo '%s'\n" RESET, nombre_dispositivo);
         return FALLO;
     }
 
-    // 2. Inicializamos el buffer con ceros
+    // 3. Inicializamos el buffer con ceros para la limpieza del disco
     unsigned char buffer[BLOCKSIZE];
     memset(buffer, 0, BLOCKSIZE);
 
     printf("Inicializando disco '%s' con %d bloques...\n", nombre_dispositivo, nbloques);
 
-    // 3. Escribimos ceros en todos los bloques para limpiar el disco
+    // 4. Escribimos ceros en todos los bloques para limpiar el disco
     for (int i = 0; i < nbloques; i++)
     {
         if (bwrite(i, buffer) == FALLO)
@@ -52,12 +65,13 @@ int main(int argc, char **argv)
         }
     }
 
+    // 5. Validamos por seguridad que la estructura inodo mida exactamente 128 bytes
     if (sizeof(struct inodo) != 128)
     {
         fprintf(stderr, RED "Error: El tamaño del inodo es %lu y debe ser 128\n" RESET, sizeof(struct inodo));
         return FALLO;
     }
-    // 4. Inicialización de metadatos (NIVEL 2)
+    // 6. Inicialización de metadatos (NIVEL 2)
     printf("Inicializando Superbloque...\n");
     if (initSB(nbloques, ninodos) == FALLO)
         return FALLO;
@@ -70,7 +84,7 @@ int main(int argc, char **argv)
     if (initAI() == FALLO)
         return FALLO;
 
-    // --- NOVEDAD NIVEL 3: CREACIÓN DEL DIRECTORIO RAÍZ ---
+    // 7. Creación del directorio raíz (NIVEL 3)
     printf("Reservando inodo raiz...\n");
     // Reservamos inodo con tipo 'd' (directorio) y permisos 7 (rwx)
     if (reservar_inodo('d', 7) == FALLO)
@@ -80,7 +94,7 @@ int main(int argc, char **argv)
         return FALLO;
     }
 
-    // 5. Desmontamos el dispositivo
+    // 8. Desmontamos el dispositivo
     if (bumount() == FALLO)
     {
         fprintf(stderr, RED "Error al desmontar el dispositivo\n" RESET);
