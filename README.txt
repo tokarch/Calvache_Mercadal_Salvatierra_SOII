@@ -42,6 +42,7 @@ Compilación:
   $ make clean
   $ make LEVEL=6 (cualquier otro número X generará los archivos para probar el nivel X) (por esto scripte1.sh tiene make LEVEL=6 en lugar de make)
 Si se quieren cambiar los debugs, al inicio del Makefile estos (DEBUGNX) se pueden cambiar por 1 o 0.
+El make LEVEL=7 esta a medias, pedimos ignorarlo porque el nivel 7 no se evalua en esta entrega
 
 Comandos externos:
   * mi_mkfs: ./mi_mkfs <nombre_dispositivo> <nbloques>
