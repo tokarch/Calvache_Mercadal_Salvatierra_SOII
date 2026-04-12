@@ -227,7 +227,15 @@ int initAI()
 
 /**
  * escribir_bit
- * Escribe un valor (0 o 1) en el bit correspondiente al bloque físico indicado.
+ * ------
+ * Escribe el valor indicado (0 o 1) en un bit concreto del Mapa de Bits.
+ * Parámetros:
+ * - nbloque: número físico de bloque que queremos marcar.
+ * - bit: valor a escribir (0 o 1).
+ * Retorno:
+ * - Devuelve EXITO (0) o FALLO (-1) en caso de error.
+ * Llama a: bread(), bwrite()
+ * Es llamada por: reservar_bloque(), liberar_bloque()
  */
 int escribir_bit(unsigned int nbloque, unsigned int bit)
 {
@@ -235,16 +243,16 @@ int escribir_bit(unsigned int nbloque, unsigned int bit)
     if (bread(posSB, &SB) == FALLO)
         return FALLO;
 
-    unsigned int posbyte = nbloque / 8;
-    unsigned int posbit = nbloque % 8;
-    unsigned int nbloqueMB = posbyte / BLOCKSIZE;
+    unsigned int posbyteMB = nbloque / 8;
+    unsigned int nbloqueMB = posbyteMB / BLOCKSIZE;
     unsigned int nbloqueabs = SB.posPrimerBloqueMB + nbloqueMB;
+    unsigned int posbit = nbloque % 8;
 
     unsigned char bufferMB[BLOCKSIZE];
     if (bread(nbloqueabs, bufferMB) == FALLO)
         return FALLO;
 
-    posbyte = posbyte % BLOCKSIZE; // Ajuste dentro del buffer
+    unsigned int posbyte = posbyteMB % BLOCKSIZE; // Ajuste dentro del buffer
 
     unsigned char mascara = 128; // 10000000
     mascara >>= posbit;          // Desplazamos el 1 a la posición correcta
@@ -265,7 +273,14 @@ int escribir_bit(unsigned int nbloque, unsigned int bit)
 
 /**
  * leer_bit
- * Lee el valor del bit correspondiente al bloque físico indicado.
+ * ------
+ * Lee el valor correspondiente a un bit del Mapa de Bits.
+ * Parámetros:
+ * - nbloque: número físico del bloque que queremos comprobar.
+ * Retorno:
+ * - Devuelve el valor del bit (0 o 1), o FALLO (-1) en caso de error.
+ * Llama a: bread()
+ * Es llamada por: Utilidades de depuración o capas superiores.
  */
 char leer_bit(unsigned int nbloque)
 {
@@ -293,7 +308,15 @@ char leer_bit(unsigned int nbloque)
 
 /**
  * reservar_bloque
- * Encuentra el primer bloque libre en el MB, lo marca como ocupado y devuelve su ID.
+ * ------
+ * Encuentra el primer bloque libre en el Mapa de Bits, lo marca como ocupado
+ * y lo inicializa a ceros en la zona de datos.
+ * Parámetros:
+ * - Ninguno.
+ * Retorno:
+ * - Devuelve el número de bloque físico reservado, o FALLO (-1) en caso de error.
+ * Llama a: bread(), memcmp(), escribir_bit(), bwrite(), memset()
+ * Es llamada por: traducir_bloque_inodo()
  */
 int reservar_bloque()
 {
@@ -371,7 +394,15 @@ int reservar_bloque()
 
 /**
  * liberar_bloque
- * Libera un bloque marcado en el MB.
+ * ------
+ * Libera un bloque determinado en el Mapa de Bits y actualiza el contador
+ * en el Superbloque.
+ * Parámetros:
+ * - nbloque: número físico del bloque a liberar.
+ * Retorno:
+ * - Devuelve el número de bloque liberado, o FALLO (-1) en caso de error.
+ * Llama a: escribir_bit(), bread(), bwrite()
+ * Es llamada por: liberar_directos(), liberar_indirectos_recursivo(), liberar_bloques_inodo()
  */
 int liberar_bloque(unsigned int nbloque)
 {
@@ -391,7 +422,16 @@ int liberar_bloque(unsigned int nbloque)
 
 /**
  * escribir_inodo
- * Escribe una estructura inodo en el array de inodos del disco.
+ * ------
+ * Escribe el contenido de una variable de tipo inodo en el Array de Inodos 
+ * en disco.
+ * Parámetros:
+ * - ninodo: número de inodo lógico que queremos escribir.
+ * - inodo: puntero a la estructura inodo con los datos.
+ * Retorno:
+ * - Devuelve EXITO (0) o FALLO (-1) en caso de error.
+ * Llama a: bread(), bwrite()
+ * Es llamada por: reservar_inodo(), traducir_bloque_inodo(), liberar_inodo()
  */
 int escribir_inodo(unsigned int ninodo, struct inodo *inodo)
 {
@@ -417,7 +457,16 @@ int escribir_inodo(unsigned int ninodo, struct inodo *inodo)
 
 /**
  * leer_inodo
- * Lee un inodo del disco y lo guarda en la variable pasada por referencia.
+ * ------
+ * Lee un inodo del Array de Inodos en disco y lo vuelca en una variable 
+ * pasada por referencia.
+ * Parámetros:
+ * - ninodo: número de inodo lógico que queremos leer.
+ * - inodo: puntero a la estructura donde volcar los datos.
+ * Retorno:
+ * - Devuelve EXITO (0) o FALLO (-1) en caso de error.
+ * Llama a: bread()
+ * Es llamada por: reservar_inodo(), traducir_bloque_inodo(), liberar_inodo()
  */
 int leer_inodo(unsigned int ninodo, struct inodo *inodo)
 {
@@ -440,7 +489,16 @@ int leer_inodo(unsigned int ninodo, struct inodo *inodo)
 
 /**
  * reservar_inodo
- * Reserva el primer inodo libre de la lista enlazada, lo inicializa y devuelve su ID.
+ * ------
+ * Encuentra el primer inodo libre del array de inodos, lo reserva,
+ * lo inicializa con los parámetros indicados y actualiza la lista enlazada.
+ * Parámetros:
+ * - tipo: carácter indicando el tipo de inodo ('d', 'f' o 'l').
+ * - permisos: permisos a asignar.
+ * Retorno:
+ * - Devuelve el número de inodo reservado, o FALLO (-1) en caso de error.
+ * Llama a: bread(), leer_inodo(), bwrite(), memset(), escribir_inodo()
+ * Es llamada por: Funciones de creación (mi_creat) de capas superiores.
  */
 int reservar_inodo(unsigned char tipo, unsigned char permisos)
 {
@@ -448,8 +506,10 @@ int reservar_inodo(unsigned char tipo, unsigned char permisos)
     if (bread(posSB, &SB) == FALLO)
         return FALLO;
 
-    if (SB.cantInodosLibres == 0)
+    if (SB.cantInodosLibres == 0) {
+        fprintf(stderr, "Error: No hay inodos libres en el dispositivo.\n");
         return FALLO;
+    }
 
     // 1. Obtenemos el ID del primer inodo libre
     unsigned int posInodoReservado = SB.posPrimerInodoLibre;
@@ -496,8 +556,17 @@ int reservar_inodo(unsigned char tipo, unsigned char permisos)
 
 /**
  * obtener_nRangoBL
- * Obtiene el rango de punteros (Directos, Indirectos0, 1 o 2) para un bloque lógico.
- * Actualiza *ptr con el puntero inicial correspondiente del inodo.
+ * ------
+ * Obtiene el rango de punteros (Directos, Indirectos0, 1 o 2) en el que se 
+ * sitúa un bloque lógico concreto, y el primer puntero asociado.
+ * Parámetros:
+ * - inodo: puntero al inodo que estamos explorando.
+ * - nblogico: número del bloque lógico.
+ * - ptr: puntero pasado por referencia donde se guarda la dirección de bloque.
+ * Retorno:
+ * - Devuelve el nivel del rango (0, 1, 2, 3), o FALLO (-1) en caso de error.
+ * Llama a: -
+ * Es llamada por: traducir_bloque_inodo()
  */
 int obtener_nRangoBL(struct inodo *inodo, unsigned int nblogico, unsigned int *ptr)
 {
@@ -529,8 +598,16 @@ int obtener_nRangoBL(struct inodo *inodo, unsigned int nblogico, unsigned int *p
 
 /**
  * obtener_indice
- * Calcula el índice dentro de un bloque de punteros para un nivel específico.
- * nivel_punteros: 3 (apunta a indirectos dobles), 2 (apunta a simples), 1 (apunta a datos).
+ * ------
+ * Calcula el índice dentro de un bloque de punteros para un bloque lógico y
+ * nivel de indirección concretos.
+ * Parámetros:
+ * - nblogico: número del bloque lógico a indexar.
+ * - nivel_punteros: profundidad a la que nos encontramos (1, 2, 3).
+ * Retorno:
+ * - Devuelve el índice calculado, o FALLO (-1) en caso de error.
+ * Llama a: -
+ * Es llamada por: traducir_bloque_inodo()
  */
 int obtener_indice(unsigned int nblogico, int nivel_punteros)
 {
@@ -573,7 +650,17 @@ int obtener_indice(unsigned int nblogico, int nivel_punteros)
 
 /**
  * traducir_bloque_inodo
- * Convierte un bloque lógico en físico. Si reservar==1, asigna espacio si no existe.
+ * ------
+ * Obtiene el número de bloque físico correspondiente a un bloque lógico 
+ * determinado del inodo. Crea el camino de bloques de punteros si no existe.
+ * Parámetros:
+ * - ninodo: inodo que posee el bloque lógico.
+ * - nblogico: bloque lógico que queremos traducir.
+ * - reservar: valor flag (0: solo lectura, 1: reserva bloques si no existen).
+ * Retorno:
+ * - Devuelve el número de bloque físico correspondiente, o FALLO (-1).
+ * Llama a: leer_inodo(), obtener_nRangoBL(), reservar_bloque(), bwrite(), memset(), bread(), obtener_indice(), escribir_inodo()
+ * Es llamada por: Funciones de lectura/escritura (mi_read_f, mi_write_f).
  */
 int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned char reservar)
 {
@@ -610,14 +697,14 @@ int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned c
             if (nivel_punteros == nRangoBL)
             {
                 inodo.punterosIndirectos[nRangoBL - 1] = ptr;
-                printf("[traducir_bloque_inodo() -> inodo.punterosIndirectos[%d] = %d (reservado BF %d para punteros_nivel%d)]\n",
+                fprintf(stderr, "[traducir_bloque_inodo() -> inodo.punterosIndirectos[%d] = %d (reservado BF %d para punteros_nivel%d)]\n",
                        nRangoBL - 1, ptr, ptr, nivel_punteros);
             }
             else
             {
                 // Si cuelga de otro bloque de punteros, actualizamos el buffer anterior y lo guardamos
                 buffer[indice] = ptr;
-                printf("[traducir_bloque_inodo() -> punteros_nivel%d [%d] = %d (reservado BF %d para punteros_nivel%d)]\n",
+                fprintf(stderr, "[traducir_bloque_inodo() -> punteros_nivel%d [%d] = %d (reservado BF %d para punteros_nivel%d)]\n",
                        nivel_punteros + 1, indice, ptr, ptr, nivel_punteros);
                 bwrite(ptr_ant, buffer);
             }
@@ -653,13 +740,13 @@ int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned c
         if (nRangoBL == 0)
         { // Directo
             inodo.punterosDirectos[nblogico] = ptr;
-            printf("[traducir_bloque_inodo() -> inodo.punterosDirectos[%d] = %d (reservado BF %d para BL %d)]\n",
+            fprintf(stderr, "[traducir_bloque_inodo() -> inodo.punterosDirectos[%d] = %d (reservado BF %d para BL %d)]\n",
                    nblogico, ptr, ptr, nblogico);
         }
         else
         { // Indirecto (ptr_ant tiene el bloque de punteros de nivel 1)
             buffer[indice] = ptr;
-            printf("[traducir_bloque_inodo() -> punteros_nivel1 [%d] = %d (reservado BF %d para BL %d)]\n",
+            fprintf(stderr, "[traducir_bloque_inodo() -> punteros_nivel1 [%d] = %d (reservado BF %d para BL %d)]\n",
                    indice, ptr, ptr, nblogico);
             bwrite(ptr_ant, buffer); // Salvamos el bloque de punteros padre
         }
@@ -680,7 +767,17 @@ int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned c
 
 /**
  * liberar_directos
- * Libera los bloques apuntados por los punteros directos dentro de un rango.
+ * ------
+ * Recorre y libera los bloques de datos apuntados por los punteros directos.
+ * Parámetros:
+ * - nBL: puntero al contador global del bloque lógico actual.
+ * - ultimoBL: tope máximo del fichero.
+ * - inodo: puntero al inodo bajo modificación.
+ * - eof: puntero al flag de fin de archivo.
+ * Retorno:
+ * - Devuelve la cantidad de bloques físicos liberados.
+ * Llama a: liberar_bloque()
+ * Es llamada por: liberar_bloques_inodo()
  */
 int liberar_directos(unsigned int *nBL, unsigned int ultimoBL, struct inodo *inodo, int *eof)
 {
@@ -708,7 +805,19 @@ int liberar_directos(unsigned int *nBL, unsigned int ultimoBL, struct inodo *ino
 
 /**
  * liberar_indirectos_recursivo
- * Recorre y libera bloques de punteros indirectos (simples, dobles, triples).
+ * ------
+ * Recorre y libera recursivamente los bloques de datos y punteros apuntados 
+ * en las zonas indirectas.
+ * Parámetros:
+ * - nBL: puntero al contador global del bloque lógico actual.
+ * - ultimoBL: tope máximo de bloques lógicos del inodo.
+ * - puntero_bloque: puntero al bloque (de datos o de punteros) a tratar.
+ * - nivel_punteros: profundidad en la jerarquía (1, 2, 3).
+ * - eof: puntero al flag de fin de archivo.
+ * Retorno:
+ * - Devuelve el total de bloques (datos e índice) liberados en este nivel.
+ * Llama a: bread(), liberar_bloque(), liberar_indirectos_recursivo(), memset(), memcmp(), bwrite()
+ * Es llamada por: liberar_bloques_inodo(), y a sí misma.
  */
 int liberar_indirectos_recursivo(unsigned int *nBL, unsigned int ultimoBL,
                                  unsigned int *puntero_bloque, int nivel_punteros, int *eof)
@@ -751,6 +860,7 @@ int liberar_indirectos_recursivo(unsigned int *nBL, unsigned int ultimoBL,
                 if (bloque_punteros[i] != 0)
                 {
                     liberar_bloque(bloque_punteros[i]);
+                    fprintf(stderr, "[liberar_bloques_inodo() liberado BF %d de datos correspondiente al BL %d]\n", bloque_punteros[i], *nBL);
                     bloque_punteros[i] = 0;
                     liberados++;
                     modificado = 1;
@@ -777,6 +887,7 @@ int liberar_indirectos_recursivo(unsigned int *nBL, unsigned int ultimoBL,
     {
         // Está vacío: liberamos el bloque de punteros y ponemos el puntero padre a 0
         liberar_bloque(*puntero_bloque);
+        fprintf(stderr, "[liberar_bloques_inodo() liberado BF %d de punteros_nivel%d correspondiente al BL %d]\n", *puntero_bloque, nivel_punteros, *nBL);
         *puntero_bloque = 0;
         liberados++; // Contamos el propio bloque de punteros liberado
     }
@@ -798,7 +909,16 @@ int liberar_indirectos_recursivo(unsigned int *nBL, unsigned int ultimoBL,
 
 /**
  * liberar_bloques_inodo
- * Libera todos los bloques de un inodo a partir de primerBL.
+ * ------
+ * Libera todos los bloques físicos de datos y punteros que pertenecen a un inodo
+ * a partir de un bloque lógico dado.
+ * Parámetros:
+ * - primerBL: número del primer bloque lógico a partir del cual borrar.
+ * - inodo: puntero al inodo sobre el que operar.
+ * Retorno:
+ * - Devuelve la cantidad total de bloques físicos liberados.
+ * Llama a: liberar_bloque(), liberar_indirectos_recursivo()
+ * Es llamada por: liberar_inodo(), mi_truncar_f()
  */
 int liberar_bloques_inodo(unsigned int primerBL, struct inodo *inodo)
 {
@@ -853,6 +973,7 @@ int liberar_bloques_inodo(unsigned int primerBL, struct inodo *inodo)
             if (inodo->punterosDirectos[i] != 0)
             {
                 liberar_bloque(inodo->punterosDirectos[i]);
+                fprintf(stderr, "[liberar_bloques_inodo() liberado BF %d de datos correspondiente al BL %d]\n", inodo->punterosDirectos[i], nBL);
                 inodo->punterosDirectos[i] = 0;
                 liberados++;
             }
@@ -885,7 +1006,15 @@ int liberar_bloques_inodo(unsigned int primerBL, struct inodo *inodo)
 
 /**
  * liberar_inodo
- * Libera un inodo y todos sus bloques asociados.
+ * ------
+ * Libera un inodo, liberando todo su contenido asociado (bloques lógicos)
+ * y actualizando la cabecera de inodos libres del superbloque.
+ * Parámetros:
+ * - ninodo: número del inodo a liberar.
+ * Retorno:
+ * - Devuelve el número del inodo liberado, o FALLO (-1) en caso de error.
+ * Llama a: leer_inodo(), liberar_bloques_inodo(), bread(), escribir_inodo(), bwrite()
+ * Es llamada por: Funciones de borrado del sistema (mi_unlink).
  */
 int liberar_inodo(unsigned int ninodo)
 {

@@ -1,6 +1,18 @@
 // permitir.c
 #include "ficheros.h"
 
+/**
+ * main (Comando permitir)
+ * ------
+ * Programa de usuario que permite modificar los permisos de un inodo determinado.
+ * * Parámetros (Línea de comandos):
+ * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
+ * - argv[2]: Número del inodo a modificar.
+ * - argv[3]: Valor de los permisos a establecer (en formato numérico, ej. 7 para rwx).
+ * * Retorno:
+ * - Devuelve EXITO (0) si finaliza correctamente, o FALLO (-1) en caso de error.
+ * * Llama a: bmount(), mi_chmod_f(), bumount()
+ */
 int main(int argc, char **argv)
 {
     if (argc != 4)

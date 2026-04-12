@@ -3,10 +3,25 @@
 
 #include "ficheros.h"
 
+// ==============================================================================
+// FUNCIONES NIVEL 5
+// ==============================================================================
+
 /**
  * mi_write_f
- * Escribe contenido de un buffer en un fichero (inodo) a partir de un offset.
- * Gestiona la fragmentación en bloques lógicos y físicos.
+ * ------
+ * Función para escribir el contenido de un buffer en un fichero (inodo)
+ * a partir de un offset especificado. Gestiona la fragmentación de la escritura
+ * en varios bloques lógicos y físicos.
+ * * Parámetros:
+ * - ninodo: número del inodo sobre el que se va a escribir.
+ * - buf_original: puntero genérico al buffer que contiene los datos a escribir.
+ * - offset: posición lógica dentro del fichero donde comenzar a escribir.
+ * - nbytes: cantidad de bytes que se desean escribir.
+ * * Retorno:
+ * - Devuelve la cantidad de bytes realmente escritos, o FALLO (-1) en caso de error.
+ * * Llama a: leer_inodo(), traducir_bloque_inodo(), bread(), memcpy(), bwrite(), escribir_inodo()
+ * Es llamada por: mi_escribir() (Nivel superior), utilidades de testeo (escribir.c)
  */
 int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offset, unsigned int nbytes)
 {
@@ -127,7 +142,18 @@ int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offse
 
 /**
  * mi_read_f
- * Lee contenido de un fichero (inodo) y lo vuelca en un buffer.
+ * ------
+ * Función para leer información de un fichero (inodo) desde el disco y volcarla
+ * en un buffer de memoria, gestionando bloques y offsets.
+ * * Parámetros:
+ * - ninodo: número del inodo que se desea leer.
+ * - buf_original: puntero genérico al buffer donde se guardarán los datos leídos.
+ * - offset: posición lógica del fichero desde la que comenzar la lectura.
+ * - nbytes: cantidad de bytes que se desean leer.
+ * * Retorno:
+ * - Devuelve la cantidad de bytes realmente leídos, o FALLO (-1) en caso de error.
+ * * Llama a: leer_inodo(), traducir_bloque_inodo(), bread(), memcpy(), memset(), escribir_inodo()
+ * Es llamada por: mi_cat() (Nivel superior), utilidades de testeo (leer.c)
  */
 int mi_read_f(unsigned int ninodo, void *buf_original, unsigned int offset, unsigned int nbytes)
 {
@@ -242,7 +268,17 @@ int mi_read_f(unsigned int ninodo, void *buf_original, unsigned int offset, unsi
 
 /**
  * mi_stat_f
- * Obtiene la metainformación de un fichero.
+ * ------
+ * Obtiene la información (metadatos) de un fichero (inodo) y la guarda
+ * en la estructura STAT (p_stat).
+ * * Parámetros:
+ * - ninodo: número del inodo a consultar.
+ * - p_stat: puntero a una estructura STAT (definida en la cabecera)
+ * donde se volcarán los metadatos.
+ * * Retorno:
+ * - Devuelve EXITO (0) o FALLO (-1) en caso de error.
+ * * Llama a: leer_inodo()
+ * Es llamada por: mi_stat() (Nivel superior), programas de usuario (ej. `mi_ls`).
  */
 int mi_stat_f(unsigned int ninodo, struct STAT *p_stat)
 {
@@ -264,7 +300,15 @@ int mi_stat_f(unsigned int ninodo, struct STAT *p_stat)
 
 /**
  * mi_chmod_f
- * Cambia los permisos de un inodo.
+ * ------
+ * Cambia los permisos de un fichero (inodo).
+ * * Parámetros:
+ * - ninodo: número del inodo al que se le cambiarán los permisos.
+ * - permisos: valor byte (unsigned char) con los nuevos permisos.
+ * * Retorno:
+ * - Devuelve EXITO (0) o FALLO (-1) en caso de error.
+ * * Llama a: leer_inodo(), escribir_inodo()
+ * Es llamada por: mi_chmod() (Nivel superior), comandos de usuario.
  */
 int mi_chmod_f(unsigned int ninodo, unsigned char permisos)
 {
@@ -284,9 +328,20 @@ int mi_chmod_f(unsigned int ninodo, unsigned char permisos)
 // ==============================================================================
 // FUNCIONES NIVEL 6
 // ==============================================================================
+
 /**
  * mi_truncar_f
- * Trunca un fichero a nbytes, liberando los bloques excedentes.
+ * ------
+ * Trunca un fichero (inodo) hasta una cantidad de bytes determinada (nbytes),
+ * liberando todos los bloques físicos de datos e indirectos sobrantes a partir
+ * de ese punto.
+ * * Parámetros:
+ * - ninodo: número del inodo a truncar.
+ * - nbytes: nuevo tamaño lógico en bytes que tendrá el fichero.
+ * * Retorno:
+ * - Devuelve la cantidad de bloques lógicos liberados, o FALLO (-1) si hay error.
+ * * Llama a: leer_inodo(), liberar_bloques_inodo(), escribir_inodo()
+ * Es llamada por: mi_rm() (Nivel superior), utilidades de testeo.
  */
 int mi_truncar_f(unsigned int ninodo, unsigned int nbytes)
 {

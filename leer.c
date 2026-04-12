@@ -3,6 +3,18 @@
 
 #define TAM_BUFFER 1500
 
+/**
+ * main (Comando leer)
+ * ------
+ * Programa de usuario que lee secuencialmente todo el contenido de un fichero (inodo)
+ * y lo vuelca por la salida estándar (pantalla) hasta llegar al final del fichero (EOF).
+ * * Parámetros (Línea de comandos):
+ * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
+ * - argv[2]: Número del inodo a leer.
+ * * Retorno:
+ * - Devuelve EXITO (0) si finaliza correctamente, o FALLO (-1) en caso de error.
+ * * Llama a: bmount(), memset(), mi_read_f(), write(), mi_stat_f(), bumount()
+ */
 int main(int argc, char **argv)
 {
     if (argc != 3)
