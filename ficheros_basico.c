@@ -719,7 +719,7 @@ int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned c
             {
                 inodo.punterosIndirectos[nRangoBL - 1] = ptr;
                 #if DEBUGN4 || DEBUGN5 || DEBUGN6
-                fprintf(stderr, BLACK "[traducir_bloque_inodo() -> inodo.punterosIndirectos[%d] = %d (reservado BF %d para punteros_nivel%d)]\n RESET",
+                fprintf(stderr, BLACK "[traducir_bloque_inodo() -> inodo.punterosIndirectos[%d] = %d (reservado BF %d para punteros_nivel%d)]\n" RESET,
                        nRangoBL - 1, ptr, ptr, nivel_punteros);
                 #endif
             }
@@ -728,7 +728,7 @@ int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned c
                 // Si cuelga de otro bloque de punteros, actualizamos el buffer anterior y lo guardamos
                 buffer[indice] = ptr;
                 #if DEBUGN4 || DEBUGN5 || DEBUGN6
-                fprintf(stderr, BLACK "[traducir_bloque_inodo() -> punteros_nivel%d [%d] = %d (reservado BF %d para punteros_nivel%d)]\n RESET",
+                fprintf(stderr, BLACK "[traducir_bloque_inodo() -> punteros_nivel%d [%d] = %d (reservado BF %d para punteros_nivel%d)]\n" RESET,
                        nivel_punteros + 1, indice, ptr, ptr, nivel_punteros);
                 #endif
                 bwrite(ptr_ant, buffer);
