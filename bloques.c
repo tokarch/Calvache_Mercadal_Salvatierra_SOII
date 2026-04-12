@@ -3,6 +3,14 @@
 
 #include "bloques.h"
 
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
+
 // Variable global estática para el descriptor del fichero.
 // Al ser static, su visibilidad está restringida a este archivo.
 static int descriptor = 0;

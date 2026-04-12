@@ -3,11 +3,19 @@
 
 #include "ficheros.h"
 
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
+
 int main(int argc, char **argv)
 {
     if (argc != 4)
     {
-        fprintf(stderr, "Sintaxis: %s <nombre_dispositivo> <ninodo> <nbytes>\n", argv[0]);
+        fprintf(stderr, RED "Sintaxis: %s <nombre_dispositivo> <ninodo> <nbytes>\n" RESET, argv[0]);
         return FALLO;
     }
 
@@ -18,45 +26,31 @@ int main(int argc, char **argv)
     if (bmount(nombre_dispositivo) == FALLO)
         return FALLO;
 
-    // Si nbytes es 0, liberamos el inodo completo
+    // Si nbytes es 0, probamos liberar_inodo()
     if (nbytes == 0)
     {
-        if (liberar_inodo(ninodo) == FALLO)
-        {
-            fprintf(stderr, "Error al liberar inodo %d\n", ninodo);
-        }
-        else
-        {
-            printf("Inodo %d liberado correctamente.\n", ninodo);
-        }
+        liberar_inodo(ninodo);
     }
-    // Si nbytes > 0, truncamos
+    // Si nbytes > 0, probamos mi_truncar_f()
     else
     {
-        int liberados = mi_truncar_f(ninodo, nbytes);
-        if (liberados == FALLO)
-        {
-            fprintf(stderr, "Error al truncar inodo %d\n", ninodo);
-        }
-        else
-        {
-            printf("Inodo %d truncado a %d bytes. Bloques liberados: %d\n", ninodo, nbytes, liberados);
-        }
+        mi_truncar_f(ninodo, nbytes);
     }
 
     // Mostramos estado final (usando mi_stat_f si el inodo sigue activo)
     struct STAT stat;
-    if (mi_stat_f(ninodo, &stat) == EXITO)
-    {
-        printf("\nDATOS INODO %d:\n", ninodo);
+    if (mi_stat_f(ninodo, &stat) != FALLO) {
+        printf("\nDATOS DEL INODO %d:\n", ninodo);
+        printf("tipo=%c\n", stat.tipo);
+        printf("permisos=%d\n", stat.permisos);
+        printf("atime: %s", ctime(&stat.atime));
+        printf("mtime: %s", ctime(&stat.mtime));
+        printf("ctime: %s", ctime(&stat.ctime));
+        printf("nlinks=%d\n", stat.nlinks);
         printf("tamEnBytesLog=%d\n", stat.tamEnBytesLog);
         printf("numBloquesOcupados=%d\n", stat.numBloquesOcupados);
-        printf("tipo=%c\n", stat.tipo);
-    }
-    else
-    {
-        // Si lo hemos liberado, stat podría fallar o devolver basura, o mostrar tipo 'l'
-        printf("\n(El inodo %d parece haber sido liberado o no es accesible)\n", ninodo);
+    } else {
+        fprintf(stderr, RED "Error al obtener stat del inodo %d\n" RESET, ninodo);
     }
 
     bumount();

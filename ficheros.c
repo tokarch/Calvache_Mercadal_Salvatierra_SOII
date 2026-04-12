@@ -3,6 +3,14 @@
 
 #include "ficheros.h"
 
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
+
 // ==============================================================================
 // FUNCIONES NIVEL 5
 // ==============================================================================
@@ -39,7 +47,7 @@ int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offse
     // Verificamos permisos de escritura (bit 'w' -> 2)
     if ((inodo.permisos & 2) != 2)
     {
-        fprintf(stderr, "Error: No hay permisos de escritura en inodo %d\n", ninodo);
+        fprintf(stderr,  RED "Error: No hay permisos de escritura en inodo %d\n" RESET, ninodo);
         return FALLO;
     }
 
@@ -170,7 +178,7 @@ int mi_read_f(unsigned int ninodo, void *buf_original, unsigned int offset, unsi
     // Verificar permisos de lectura (bit 'r' -> 4)
     if ((inodo.permisos & 4) != 4)
     {
-        fprintf(stderr, "Error: No hay permisos de lectura en inodo %d\n", ninodo);
+        fprintf(stderr, RED "Error: No hay permisos de lectura en inodo %d\n" RESET, ninodo);
         return FALLO;
     }
 
@@ -355,14 +363,14 @@ int mi_truncar_f(unsigned int ninodo, unsigned int nbytes)
     // Verificar permisos escritura
     if ((inodo.permisos & 2) != 2)
     {
-        fprintf(stderr, "Error: Sin permisos de escritura en inodo %d\n", ninodo);
+        fprintf(stderr, RED "Error: Sin permisos de escritura en inodo %d\n" RESET, ninodo);
         return FALLO;
     }
 
     // No se puede truncar más allá del tamaño actual
     if (nbytes > inodo.tamEnBytesLog)
     {
-        fprintf(stderr, "Error: No se puede truncar más allá del EOF\n");
+        fprintf(stderr, RED "Error: No se puede truncar más allá del EOF\n" RESET);
         return FALLO;
     }
 

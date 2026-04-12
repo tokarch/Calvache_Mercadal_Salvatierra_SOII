@@ -4,6 +4,14 @@
 #include "ficheros_basico.h"
 #include "directorios.h"
 
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
+
 int main(int argc, char **argv)
 {
 
@@ -67,7 +75,7 @@ int main(int argc, char **argv)
     // Reservamos inodo con tipo 'd' (directorio) y permisos 7 (rwx)
     if (reservar_inodo('d', 7) == FALLO)
     {
-        fprintf(stderr, "Error al reservar inodo raiz\n");
+        fprintf(stderr, RED "Error al reservar inodo raiz\n" RESET);
         bumount();
         return FALLO;
     }

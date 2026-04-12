@@ -1,6 +1,12 @@
+# AUTORES
+# =======
+# Calvache Vidal, Antonio
+# Mercadal Forteza, Lluís
+# Salvatierra Romero, Diego Jeroni
+
+
 CC=gcc
-CFLAGS=-c -g -Wall -std=gnu17
-# Descomentamos pthread porque lo vas a necesitar seguro a partir del nivel de simulación
+CFLAGS=-c -g -Wall -std=gnu99 -DDEBUGN3=1 -DDEBUGN4=1 -DDEBUGN5=1 -DDEBUGN6=1 -DDEBUGN7=0
 LDFLAGS=-pthread
 
 # =========================================================================

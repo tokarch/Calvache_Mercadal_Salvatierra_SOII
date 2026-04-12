@@ -8,6 +8,14 @@
 #include <limits.h> // Para UINT_MAX
 #include <time.h>   // Para time_t
 
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
+
 // Constantes de diseño
 #define posSB 0       // El superbloque está en el bloque 0
 #define tamSB 1       // El superbloque ocupa 1 bloque

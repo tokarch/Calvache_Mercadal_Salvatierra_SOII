@@ -1,6 +1,14 @@
 // leer.c
 #include "ficheros.h"
 
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
+
 #define TAM_BUFFER 1500
 
 /**

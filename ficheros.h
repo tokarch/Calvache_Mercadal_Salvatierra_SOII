@@ -6,6 +6,14 @@
 
 #include "ficheros_basico.h"
 
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
+
 // Estructura para devolver metadatos de un fichero (similar a stat de Linux)
 struct STAT
 {

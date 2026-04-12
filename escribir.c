@@ -1,6 +1,14 @@
 // escribir.c
 #include "ficheros.h"
 
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
+
 /**
  * main (Comando escribir)
  * ------
@@ -20,7 +28,9 @@ int main(int argc, char **argv)
     // Sintaxis estricta del PDF: escribir <nombre_dispositivo> <"texto"> <diferentes_inodos>
     if (argc != 4)
     {
-        fprintf(stderr, "Sintaxis: %s <nombre_dispositivo> <\"texto\"> <diferentes_inodos>\n", argv[0]);
+        fprintf(stderr, RED "Sintaxis: %s <nombre_dispositivo> <\"texto\"> <diferentes_inodos>\n" RESET, argv[0]);
+        fprintf(stderr, RED "Offsets: 9000, 209000, 30725000, 409605000, 480000000\n" RESET);
+        fprintf(stderr, RED "Si diferentes_inodos=0 se reserva un solo inodo para todos los offsets\n" RESET);
         return FALLO;
     }
 
@@ -32,6 +42,8 @@ int main(int argc, char **argv)
         return FALLO;
 
     int longitud = strlen(texto);
+    printf("Longitud del texto: %d\n", longitud);
+
     // Offsets exactos que pide el script de prueba del Nivel 5
     int offsets[5] = {9000, 209000, 30725000, 409605000, 480000000};
     int ninodo;

@@ -1,6 +1,14 @@
 // bloques.h
 // Descripción: Definiciones globales, librerías y prototipos de funciones de bajo nivel.
 
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
+
 #ifndef BLOQUES_H
 #define BLOQUES_H
 

@@ -1,6 +1,14 @@
 // permitir.c
 #include "ficheros.h"
 
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
+
 /**
  * main (Comando permitir)
  * ------
@@ -17,7 +25,7 @@ int main(int argc, char **argv)
 {
     if (argc != 4)
     {
-        fprintf(stderr, "Sintaxis: %s <nombre_dispositivo> <ninodo> <permisos>\n", argv[0]);
+        fprintf(stderr, RED "Sintaxis: %s <nombre_dispositivo> <ninodo> <permisos>\n" RESET, argv[0]);
         return FALLO;
     }
 
@@ -34,7 +42,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        fprintf(stderr, "Error al cambiar permisos.\n");
+        fprintf(stderr, RED "Error al cambiar permisos.\n" RESET);
     }
 
     bumount();
