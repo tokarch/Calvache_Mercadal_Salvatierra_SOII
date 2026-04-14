@@ -52,17 +52,21 @@ int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offse
     }
 
     // 2. Calculamos bloques afectados
+    // primerBL: En qué bloque lógico cae el byte inicial (offset)
+    // ultimoBL: En qué bloque lógico cae el byte final (offset + nbytes - 1)
     primerBL = offset / BLOCKSIZE;
     ultimoBL = (offset + nbytes - 1) / BLOCKSIZE;
 
     // Desplazamientos dentro de los bloques
+    // desp1: A partir de qué byte empezamos a escribir DENTRO del primer bloque
+    // desp2: En qué byte terminamos de escribir DENTRO del último bloque
     desp1 = offset % BLOCKSIZE;
     desp2 = (offset + nbytes - 1) % BLOCKSIZE;
 
     // 3. Caso 1: La escritura cabe en un solo bloque lógico
     if (primerBL == ultimoBL)
     {
-        // Obtenemos el bloque físico (reservando si no existe)
+        // Obtenemos el bloque físico (reservando si no existe porque vamos a escribir)
         nbfisico = traducir_bloque_inodo(ninodo, primerBL, 1);
         if (nbfisico == -1)
             return FALLO;
@@ -106,7 +110,8 @@ int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offse
             if (nbfisico == -1)
                 return FALLO;
 
-            // Escribimos directamente del buffer original (cálculo de punteros)
+            // Optimización. Como sobreescribimos el bloque entero (1024 bytes), 
+            // no hace falta hacer bread() previo. Volcamos directamente desde el buffer original.
             if (bwrite(nbfisico, buf_original + (BLOCKSIZE - desp1) + (bl - primerBL - 1) * BLOCKSIZE) == FALLO)
                 return FALLO;
 
@@ -189,7 +194,8 @@ int mi_read_f(unsigned int ninodo, void *buf_original, unsigned int offset, unsi
     }
     if (offset + nbytes >= inodo.tamEnBytesLog)
     {
-        nbytes = inodo.tamEnBytesLog - offset; // Ajustamos nbytes al final del fichero
+        // Leemos solo los bytes que podemos desde el offset hasta el EOF
+        nbytes = inodo.tamEnBytesLog - offset;
     }
 
     primerBL = offset / BLOCKSIZE;

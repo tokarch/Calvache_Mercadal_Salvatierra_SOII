@@ -18,6 +18,7 @@ AUTORES
  * Programa encargado de formatear e inicializar el dispositivo virtual.
  * Llena el disco de ceros, inicializa el Superbloque, el Mapa de Bits, 
  * el Array de Inodos y reserva el inodo correspondiente al directorio raíz.
+ * Uso: ./mi_mkfs <nombre_dispositivo> <nbloques>
  * * Parámetros (Línea de comandos):
  * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
  * - argv[2]: Número total de bloques que tendrá el disco.
@@ -29,32 +30,35 @@ int main(int argc, char **argv)
 {
 
     // 1. Verificamos que los argumentos sean correctos
-    // Uso: ./mi_mkfs <nombre_dispositivo> <nbloques>
+    // argc debe ser 3: argv[0]="mi_mkfs", argv[1]="nombre_dispositivo", argv[2]="nbloques"
     if (argc != 3)
     {
         fprintf(stderr, RED "Sintaxis incorrecta: %s <nombre_dispositivo> <nbloques>\n" RESET, argv[0]);
         return FALLO;
     }
 
-    // Obtenemos los parámetros de la línea de comandos
+    // atoi() nos sirve para obtener el valor numérico (int) a partir del string pasado en argv[2]
     char *nombre_dispositivo = argv[1];
-    int nbloques = atoi(argv[2]); // Convertimos el string de bloques a entero
-    int ninodos = nbloques / 4;   // Heurística del enunciado
+    int nbloques = atoi(argv[2]);
+    int ninodos = nbloques / 4;   // Heurística del enunciado para la cantidad de inodos
 
-    // 2. Montamos el dispositivo virtual
+    // 2. Montamos el dispositivo virtual abriendo el fichero
     if (bmount(nombre_dispositivo) == FALLO)
     {
         fprintf(stderr, RED "Error: No se pudo montar el dispositivo '%s'\n" RESET, nombre_dispositivo);
         return FALLO;
     }
 
-    // 3. Inicializamos el buffer con ceros para la limpieza del disco
+    // 3. Declaramos un búfer del tamaño de un bloque lógico
+    // Usamos memset() de <string.h> para llenarlo completamente de ceros
     unsigned char buffer[BLOCKSIZE];
     memset(buffer, 0, BLOCKSIZE);
 
     printf("Inicializando disco '%s' con %d bloques...\n", nombre_dispositivo, nbloques);
 
     // 4. Escribimos ceros en todos los bloques para limpiar el disco
+    // Iteramos tantas veces como 'nbloques' haya pasado el administrador
+    // En cada iteración llamamos a bwrite() para escribir nuestro buffer de ceros, formateando el disco
     for (int i = 0; i < nbloques; i++)
     {
         if (bwrite(i, buffer) == FALLO)
@@ -86,7 +90,8 @@ int main(int argc, char **argv)
 
     // 7. Creación del directorio raíz (NIVEL 3)
     printf("Reservando inodo raiz...\n");
-    // Reservamos inodo con tipo 'd' (directorio) y permisos 7 (rwx)
+    // El inodo 0 siempre se reserva para el directorio raíz del sistema
+    // Se inicializa con tipo 'd' (directorio) y permisos 7 (rwx en octal: lectura, escritura, ejecución)
     if (reservar_inodo('d', 7) == FALLO)
     {
         fprintf(stderr, RED "Error al reservar inodo raiz\n" RESET);
@@ -94,7 +99,7 @@ int main(int argc, char **argv)
         return FALLO;
     }
 
-    // 8. Desmontamos el dispositivo
+    // 8. Desmontamos el dispositivo llamando a bumount() para cerrar el descriptor del fichero
     if (bumount() == FALLO)
     {
         fprintf(stderr, RED "Error al desmontar el dispositivo\n" RESET);

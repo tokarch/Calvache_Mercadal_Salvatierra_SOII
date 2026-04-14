@@ -69,12 +69,17 @@ int main(int argc, char **argv)
     if (bmount(argv[1]) == FALLO)
         return FALLO;
 
-    // 3. Leer el Superbloque
+    // 3.
+    // Declaramos una estructura local Superbloque.
+    // Usamos bread(posSB, &SB) para leer el bloque 0 entero desde el disco 
+    // y volcarlo directamente en la memoria de nuestra variable local SB
     struct superbloque SB;
     if (bread(posSB, &SB) == FALLO)
         return FALLO;
 
     // 4. Mostrar por pantalla los datos del Superbloque
+    // Si las fórmulas de tamMB y tamAI funcionaron correctamente,
+    // posUltimoBloqueDatos deberá coincidir exactamente con (totBloques - 1)
     printf(YELLOW "DATOS DEL SUPERBLOQUE\n" RESET);
     printf("posPrimerBloqueMB = %d\n", SB.posPrimerBloqueMB);
     printf("posUltimoBloqueMB = %d\n", SB.posUltimoBloqueMB);

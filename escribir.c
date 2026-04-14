@@ -15,6 +15,15 @@ AUTORES
  * Programa de usuario que escribe un texto pasado por argumento en un inodo específico.
  * Realiza las escrituras en varios offsets predefinidos (0, 5000, 200000, 40000000, 400000000) 
  * para forzar la traducción y reserva de bloques directos e indirectos de todos los niveles.
+ * 
+ * Hacemos writes en los offsets 0, 5000, 200000, 40000000 y 400000000.
+ * - Offset 0:         Bloque Lógico 0   (Puntero Directo).
+ * - Offset 5000:      Bloque Lógico 4   (Puntero Directo, pero obliga a usar desp1 y desp2).
+ * - Offset 200000:    Bloque Lógico 195 (Indirecto Simple).
+ * - Offset 40000000:  Bloque Lógico 39062 (Indirecto Doble).
+ * - Offset 400000000: Bloque Lógico 390625 (Indirecto Triple).
+ * Así probamos todas las ramas del árbol de inodos.
+ *
  * * Parámetros (Línea de comandos):
  * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
  * - argv[2]: Texto o cadena de caracteres a escribir.

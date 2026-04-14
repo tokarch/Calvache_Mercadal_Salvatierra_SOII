@@ -33,19 +33,19 @@ AUTORES
 // ----------------------------------------------------------------------
 struct superbloque
 {
-    unsigned int posPrimerBloqueMB;                      // Inicio Mapa de Bits
-    unsigned int posUltimoBloqueMB;                      // Fin Mapa de Bits
-    unsigned int posPrimerBloqueAI;                      // Inicio Array de Inodos
-    unsigned int posUltimoBloqueAI;                      // Fin Array de Inodos
-    unsigned int posPrimerBloqueDatos;                   // Inicio Datos
-    unsigned int posUltimoBloqueDatos;                   // Fin Datos
-    unsigned int posInodoRaiz;                           // Inodo del directorio raíz
-    unsigned int posPrimerInodoLibre;                    // Primer inodo de la lista de libres
-    unsigned int cantBloquesLibres;                      // Bloques disponibles
-    unsigned int cantInodosLibres;                       // Inodos disponibles
-    unsigned int totBloques;                             // Total bloques del disco
-    unsigned int totInodos;                              // Total inodos del disco
-    char padding[BLOCKSIZE - 12 * sizeof(unsigned int)]; // Relleno
+    unsigned int posPrimerBloqueMB;                      // Posición absoluta del primer bloque del mapa de bits
+    unsigned int posUltimoBloqueMB;                      // Posición absoluta del último bloque del mapa de bits
+    unsigned int posPrimerBloqueAI;                      // Posición absoluta del primer bloque del array de inodos
+    unsigned int posUltimoBloqueAI;                      // Posición absoluta del último bloque del array de inodos
+    unsigned int posPrimerBloqueDatos;                   // Posición absoluta del primer bloque de datos
+    unsigned int posUltimoBloqueDatos;                   // Posición absoluta del último bloque de datos
+    unsigned int posInodoRaiz;                           // Posición del inodo del directorio raíz (relativa al AI)
+    unsigned int posPrimerInodoLibre;                    // Posición del primer inodo libre (relativa al AI)
+    unsigned int cantBloquesLibres;                      // Cantidad de bloques libres (en todo el disco)
+    unsigned int cantInodosLibres;                       // Cantidad de inodos libres (en el AI)
+    unsigned int totBloques;                             // Cantidad total de bloques del disco
+    unsigned int totInodos;                              // Cantidad total de inodos (heurística)
+    char padding[BLOCKSIZE - 12 * sizeof(unsigned int)]; // Relleno para ocupar el bloque completo
 };
 
 // ----------------------------------------------------------------------
@@ -54,20 +54,20 @@ struct superbloque
 struct inodo
 {
     unsigned char tipo;                    // 'l': libre, 'd': directorio, 'f': fichero
-    unsigned char permisos;                // rwx...
+    unsigned char permisos;                // rwx (lectura y/o escritura y/o ejecución)...
     unsigned char reservado_alineacion[6]; // Microprocesador de 64 bits
 
-    time_t atime; // Último acceso a datos
-    time_t mtime; // Última modificación de datos
-    time_t ctime; // Cambio de estado (metadatos)
-    time_t btime; // Creación (birth) (opcional según PDF, pero útil)
+    time_t atime; // Último acceso a datos (contenido)
+    time_t mtime; // Última modificación de datos (contenido)
+    time_t ctime; // Última modificación del inodo
+    time_t btime; // Creación del inodo (birth) (opcional según PDF, pero útil)
 
-    unsigned int nlinks;             // Enlaces apuntando a este inodo
+    unsigned int nlinks;             // Enlaces de entradas en directorio apuntando a este inodo
     unsigned int tamEnBytesLog;      // Tamaño en bytes lógicos (EOF)
-    unsigned int numBloquesOcupados; // Bloques físicos ocupados en zona de datos
+    unsigned int numBloquesOcupados; // Cantidad de bloques ocupados en zona de datos
 
-    unsigned int punterosDirectos[12];  // 12 punteros directos
-    unsigned int punterosIndirectos[3]; // Simple, Doble, Triple
+    unsigned int punterosDirectos[12];  // 12 punteros a bloques directos
+    unsigned int punterosIndirectos[3]; // Indirecto simple, doble, triple
 
     // Relleno para asegurar 128 bytes exactos.
     // Cálculo: 128 - (2 char + 6 res + 4 time_t + 3 int + 15 int)

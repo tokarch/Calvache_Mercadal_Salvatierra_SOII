@@ -18,6 +18,7 @@ LEVEL ?= 7
 
 # -------------------------------------------------------------------------
 # NIVEL 1 - 3: Bases del sistema (Metadatos y Bloques)
+# Aquí incluimos los comandos base para crear el disco y leer sus estructuras.
 # -------------------------------------------------------------------------
 SOURCES = mi_mkfs.c bloques.c ficheros_basico.c leer_sf.c
 LIBRARIES = bloques.o ficheros_basico.o

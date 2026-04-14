@@ -11,8 +11,8 @@ AUTORES
 * Salvatierra Romero, Diego Jeroni
 */
 
-// Variable global estática para el descriptor del fichero.
-// Al ser static, su visibilidad está restringida a este archivo.
+// Declaramos el descriptor como 'static' para que actúe como una variable 
+// global estática, de forma que SOLO pueda ser accedida desde dentro de bloques.c.
 static int descriptor = 0;
 
 /**
@@ -29,7 +29,8 @@ static int descriptor = 0;
 int bmount(const char *camino)
 {
     // Configuración de permisos: rw-rw-rw- (0666)
-    // Usamos umask(0000) para asegurar que el sistema no restrinja los permisos solicitados.
+    // Usamos umask(0000) para evitar que el sistema operativo (o entornos como WSL) 
+    // restrinja o modifique los permisos que solicitamos por defecto.
     umask(0000);
 
     // Abrimos el fichero. Flags:
@@ -60,7 +61,7 @@ int bmount(const char *camino)
  */
 int bumount()
 {
-    // Intentamos cerrar el descriptor actual
+    // Llamamos a close() para liberar el descriptor del fichero.
     if (close(descriptor) == -1)
     {
         perror(RED "Error en bumount al cerrar el descriptor" RESET);
@@ -84,17 +85,19 @@ int bumount()
  */
 int bwrite(unsigned int nbloque, const void *buf)
 {
-    // 1. Calcular el desplazamiento (offset) en bytes
+    // 1. Calculamos el byte exacto donde escribir multiplicando el nº de bloque 
+    // por el tamaño del bloque (BLOCKSIZE = 1024). Hacemos cast a off_t para evitar desbordamientos.
     off_t desplazamiento = (off_t)nbloque * BLOCKSIZE;
 
-    // 2. Mover el puntero del fichero a la posición correcta
+    // 2. lseek() mueve el puntero de lectura/escritura del fichero. 
+    // Usamos SEEK_SET para tomar como punto de referencia el inicio del fichero.
     if (lseek(descriptor, desplazamiento, SEEK_SET) == (off_t)-1)
     {
         perror(RED "Error en bwrite al mover el puntero (lseek)" RESET);
         return FALLO;
     }
 
-    // 3. Escribir el contenido del buffer en el fichero
+    // 3. write() vuelca el contenido del buffer (exactamente 1 bloque) en el offset posicionado.
     size_t bytes_escritos = write(descriptor, buf, BLOCKSIZE);
 
     if (bytes_escritos == -1)
@@ -103,7 +106,7 @@ int bwrite(unsigned int nbloque, const void *buf)
         return FALLO;
     }
 
-    // Devolvemos la cantidad de bytes escritos (debe coincidir con BLOCKSIZE)
+    // Devolvemos la cantidad de bytes escritos (si todo va bien, debe coincidir con BLOCKSIZE)
     return (int)bytes_escritos;
 }
 
@@ -121,6 +124,8 @@ int bwrite(unsigned int nbloque, const void *buf)
  */
 int bread(unsigned int nbloque, void *buf)
 {
+    // El cálculo del offset y el posicionamiento del puntero es idéntico al de bwrite.
+    
     // 1. Calcular el desplazamiento
     off_t desplazamiento = (off_t)nbloque * BLOCKSIZE;
 
@@ -131,7 +136,7 @@ int bread(unsigned int nbloque, void *buf)
         return FALLO;
     }
 
-    // 3. Leer del fichero y guardar en buf
+    // 3. read() coge BLOCKSIZE bytes desde el fichero y los guarda en la memoria apuntada por 'buf'.
     size_t bytes_leidos = read(descriptor, buf, BLOCKSIZE);
 
     if (bytes_leidos == -1)

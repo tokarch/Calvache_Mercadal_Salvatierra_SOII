@@ -32,9 +32,13 @@ int cbwrites = 0;
  */
 int tamMB(unsigned int nbloques)
 {
-    // Cada bloque del MB gestiona BLOCKSIZE * 8 bloques del disco.
-    // Fórmula: (nbloques / 8) / BLOCKSIZE. Si hay resto, sumamos 1 bloque.
+    // El Mapa de Bits usa 1 bit para representar el estado de 1 bloque físico.
+    // Primero calculamos cuántos bytes necesitamos: (nbloques / 8).
+    // Luego dividimos esos bytes entre BLOCKSIZE para saber cuántos bloques ocupará el MB.
     int tam = (nbloques / 8) / BLOCKSIZE;
+
+    // Si la división anterior no es exacta, significa que 
+    // nos sobran bits que no caben en 'tam' bloques, así que necesitamos sumar 1 bloque adicional.
     if ((nbloques / 8) % BLOCKSIZE != 0)
     {
         tam++;
@@ -55,8 +59,12 @@ int tamMB(unsigned int nbloques)
  */
 int tamAI(unsigned int ninodos)
 {
-    // Caben (BLOCKSIZE / INODOSIZE) inodos en un bloque.
+    // Cada inodo ocupa INODOSIZE (128 bytes). Multiplicamos el total de inodos 
+    // por 128 para obtener los bytes totales, y dividimos entre BLOCKSIZE (1024) para sacar los bloques.
+    // Es lo mismo que decir que caben 8 inodos por bloque (1024 / 128 = 8).
     int tam = (ninodos * INODOSIZE) / BLOCKSIZE;
+
+    // Igual que en tamMB, comprobamos si hay resto para añadir un bloque extra si fuera necesario.
     if ((ninodos * INODOSIZE) % BLOCKSIZE != 0)
     {
         tam++;
@@ -81,13 +89,16 @@ int initSB(unsigned int nbloques, unsigned int ninodos)
 {
     struct superbloque SB;
 
-    // Posicionamiento de estructuras
+    // Ubicamos las zonas secuencialmente.
+    // El SB siempre está en el bloque 0 (posSB). El MB empieza justo después (bloque 1).
     SB.posPrimerBloqueMB = posSB + tamSB;
     SB.posUltimoBloqueMB = SB.posPrimerBloqueMB + tamMB(nbloques) - 1;
 
+    // El Array de Inodos va después del MB
     SB.posPrimerBloqueAI = SB.posUltimoBloqueMB + 1;
     SB.posUltimoBloqueAI = SB.posPrimerBloqueAI + tamAI(ninodos) - 1;
 
+    // La Zona de Datos empieza al terminar los metadatos y llega hasta el final del disco
     SB.posPrimerBloqueDatos = SB.posUltimoBloqueAI + 1;
     SB.posUltimoBloqueDatos = nbloques - 1;
 
@@ -95,13 +106,14 @@ int initSB(unsigned int nbloques, unsigned int ninodos)
     SB.posInodoRaiz = 0;
     SB.posPrimerInodoLibre = 0; // Lista enlazada empieza en 0
 
-    // Contadores
-    SB.cantBloquesLibres = nbloques; // Se actualizará en initMB
+    // Inicialmente ponemos TODOS los bloques y TODOS los inodos como libres
+    // La función initMB() se encargará luego de restar los bloques que ocupan los metadatos
+    SB.cantBloquesLibres = nbloques;
     SB.cantInodosLibres = ninodos;
     SB.totBloques = nbloques;
     SB.totInodos = ninodos;
 
-    // Escribimos el SB en el bloque 0
+    // Escribimos el SB
     if (bwrite(posSB, &SB) == FALLO)
     {
         return FALLO;
@@ -128,18 +140,17 @@ int initMB()
     if (bread(posSB, &SB) == FALLO)
         return FALLO;
 
-    // Calculamos cuánto ocupan los metadatos (SB + MB + AI)
-    // El primer bloque de datos libres es posPrimerBloqueDatos.
-    // Por tanto, los bloques 0 a (posPrimerBloqueDatos - 1) son metadatos.
+    // Tenemos que marcar como OCUPADOS (1) los bloques de metadatos (SB + MB + AI).
+    // Como los metadatos van del bloque 0 hasta posPrimerBloqueDatos - 1, la cantidad 
+    // exacta de bloques de metadatos equivale al valor numérico de posPrimerBloqueDatos
     unsigned int tamMetadatos = SB.posPrimerBloqueDatos;
 
-    // Calculamos cuántos bytes y bits completos necesitamos poner a 1
+    // Convertimos esa cantidad de bloques a bytes completos y bits sueltos
     unsigned int bytesCompletos = tamMetadatos / 8;
     unsigned int bitsRestantes = tamMetadatos % 8;
 
     unsigned char buffer[BLOCKSIZE];
-    // Inicializamos todo a 0 por defecto
-    memset(buffer, 0, BLOCKSIZE);
+    memset(buffer, 0, BLOCKSIZE); // El resto de bloques (datos) se quedan a 0 (libres)
 
     // Recorremos los bloques del MB
     // (Generalmente cabe en 1, pero hacemos el bucle por si el disco es enorme)
@@ -152,13 +163,15 @@ int initMB()
         {
             if (bytesEscritos < bytesCompletos)
             {
+                // Marca 8 bloques como ocupados de golpe
                 buffer[j] = 0xFF; // 11111111 -> Todo ocupado
                 bytesEscritos++;
             }
             else if (bytesEscritos == bytesCompletos)
             {
-                // Último byte parcial. Ejemplo: si bitsRestantes=3 -> 11100000
-                // Usamos desplazamiento de bits para crear la máscara
+                // Tratamiento de los "bits sueltos" restantes usando una máscara
+                // Si sobran 3 bits, desplazamos 0xFF a la izquierda (8 - 3 = 5 posiciones)
+                // 11111111 << 5 se convierte en 11100000. Así solo marcamos los 3 primeros
                 unsigned char mascara = 0;
                 if (bitsRestantes > 0)
                 {
@@ -177,7 +190,7 @@ int initMB()
         memset(buffer, 0, BLOCKSIZE);
     }
 
-    // Actualizamos la cantidad de bloques libres en el SB
+    // Restamos los metadatos de los bloques libres en el SB y lo guardamos
     SB.cantBloquesLibres -= tamMetadatos;
     if (bwrite(posSB, &SB) == FALLO)
         return FALLO;
@@ -202,10 +215,13 @@ int initAI()
     if (bread(posSB, &SB) == FALLO)
         return FALLO;
 
+    // Creamos un buffer de memoria que almacena un array de estructuras inodo
+    // Su tamaño exacto es BLOCKSIZE / INODOSIZE
     struct inodo inodos[BLOCKSIZE / INODOSIZE];
     memset(inodos, 0, sizeof(inodos));                    // Inicializa todo el bloque a 0 para evitar bytes indeterminados
-    unsigned int contInodos = SB.posPrimerInodoLibre + 1; // El siguiente al 0 es el 1
+    unsigned int contInodos = SB.posPrimerInodoLibre + 1; // Número del siguiente inodo libre en la lista enlazada a crear (el siguiente al 0 es el 1)
     unsigned int inodoAbsoluto = 0;                       // Para saber qué inodo estamos tratando realmente
+
     // Recorremos todos los bloques del AI
     for (unsigned int i = SB.posPrimerBloqueAI; i <= SB.posUltimoBloqueAI; i++)
     {
@@ -216,11 +232,13 @@ int initAI()
 
             if (contInodos < SB.totInodos)
             {
+                // Enlazamos la lista de inodos libres usando punterosDirectos[0]
                 inodos[j].punterosDirectos[0] = contInodos; // Apunta al siguiente
                 contInodos++;
             }
             else
             {
+                // El último inodo de todos debe apuntar a "Null".
                 inodos[j].punterosDirectos[0] = UINT_MAX; // Fin de la lista
                 // Si hay slots sobrantes, también los marcamos como fin de lista para evitar confusiones
             }
@@ -255,16 +273,21 @@ int escribir_bit(unsigned int nbloque, unsigned int bit)
     if (bread(posSB, &SB) == FALLO)
         return FALLO;
 
+    // 1 byte = 8 bits. Dividimos nbloque entre 8 para saber en qué byte absoluto del MB está
     unsigned int posbyteMB = nbloque / 8;
+    // Dividimos el byte absoluto entre el tamaño de bloque para saber qué bloque del MB hay que leer
     unsigned int nbloqueMB = posbyteMB / BLOCKSIZE;
+    // Sumamos el bloque relativo del MB al bloque donde empieza el MB para tener la ruta física absoluta
     unsigned int nbloqueabs = SB.posPrimerBloqueMB + nbloqueMB;
+    // El resto de la división entre 8 nos dice exactamente qué bit dentro del byte es el nuestro (0 a 7)
     unsigned int posbit = nbloque % 8;
 
     unsigned char bufferMB[BLOCKSIZE];
     if (bread(nbloqueabs, bufferMB) == FALLO)
         return FALLO;
 
-    unsigned int posbyte = posbyteMB % BLOCKSIZE; // Ajuste dentro del buffer
+    // posbyteMB es global al MB. El módulo nos da la posición exacta DENTRO del buffer que hemos leído
+    unsigned int posbyte = posbyteMB % BLOCKSIZE;
 
     unsigned char mascara = 128; // 10000000
     mascara >>= posbit;          // Desplazamos el 1 a la posición correcta
@@ -309,14 +332,15 @@ char leer_bit(unsigned int nbloque)
     if (bread(nbloqueabs, bufferMB) == FALLO)
         return FALLO;
 
-    // Aquí posbyte ya es el total. Necesitamos posbyte dentro del bloque (posbyte_bloque)
-    // para leer del buffer, y posbyteMB (que es posbyte) para el debug.
     unsigned int posbyteMB = posbyte;
     unsigned int posbyte_bloque = posbyteMB % BLOCKSIZE;
 
     unsigned char mascara = 128; // 10000000
     mascara >>= posbit;
-    mascara &= bufferMB[posbyte_bloque]; // Filtramos el bit
+
+    // Aplicamos un AND. Esto pone a 0 todos los bits que no nos interesan
+    // Si nuestro bit original era 1, la máscara se queda igual. Si era 0, la máscara entera pasa a ser 00000000
+    mascara &= bufferMB[posbyte_bloque];
 
     // Imprimir mensaje de depuración (en rojo) si DEBUGN3 está activo
 #if DEBUGN3
@@ -377,9 +401,10 @@ int reservar_bloque()
             // 3. Buscamos el bit dentro del byte que sea 0
             unsigned char mascara = 128;
             posbit = 0;
+
             while (bufferMB[posbyte] & mascara)
             {                            // Mientras sea 1
-                bufferMB[posbyte] <<= 1; // Desplazamos para ver el siguiente
+                bufferMB[posbyte] <<= 1; // Desplazamos hacia la izquierda para ver el siguiente
                 posbit++;
             }
         }
@@ -392,7 +417,7 @@ int reservar_bloque()
     if (!encontrado)
         return FALLO; // Seguridad
 
-    // Recalculamos el nbloque físico real
+    // Teniendo el bloque, byte y bit, calculamos el número lógico del bloque físico
     unsigned int nbloqueMB = nbloqueabs - SB.posPrimerBloqueMB;
     unsigned int nbloque = (nbloqueMB * BLOCKSIZE + posbyte) * 8 + posbit;
 
@@ -532,7 +557,7 @@ int reservar_inodo(unsigned char tipo, unsigned char permisos)
         return FALLO;
     }
 
-    // 1. Obtenemos el ID del primer inodo libre
+    // 1. Obtenemos el ID del primer inodo libre desde la cabecera del SB
     unsigned int posInodoReservado = SB.posPrimerInodoLibre;
 
     // 2. Leemos ese inodo para saber a cuál apunta (el siguiente libre)
@@ -540,7 +565,7 @@ int reservar_inodo(unsigned char tipo, unsigned char permisos)
     if (leer_inodo(posInodoReservado, &inodoReservado) == FALLO)
         return FALLO;
 
-    // 3. Actualizamos el SB para que apunte al siguiente
+    // 3. Actualizamos el SB para que apunte al siguiente, que ahora será el primer inodo libre
     SB.posPrimerInodoLibre = inodoReservado.punterosDirectos[0];
     SB.cantInodosLibres--;
     if (bwrite(posSB, &SB) == FALLO)
@@ -591,21 +616,26 @@ int reservar_inodo(unsigned char tipo, unsigned char permisos)
  */
 int obtener_nRangoBL(struct inodo *inodo, unsigned int nblogico, unsigned int *ptr)
 {
+    // Los umbrales se calculan de forma acumulativa en base a los 256 punteros por bloque
+    // DIRECTOS (12): Cubre del bloque lógico 0 al 11
     if (nblogico < DIRECTOS)
     {
         *ptr = inodo->punterosDirectos[nblogico];
         return 0; // Rango Directo
     }
+    // INDIRECTOS0 (268): Suma los 12 directos + 256 punteros que caben en 1 bloque índice
     else if (nblogico < INDIRECTOS0)
     {
         *ptr = inodo->punterosIndirectos[0];
         return 1; // Indirecto Simple
     }
+    // INDIRECTOS1 (65.804): Suma el umbral anterior (268) + (256 * 256) punteros del nivel doble
     else if (nblogico < INDIRECTOS1)
     {
         *ptr = inodo->punterosIndirectos[1];
         return 2; // Indirecto Doble
     }
+    // INDIRECTOS2 (16.843.020): Suma el umbral anterior (65.804) + (256 * 256 * 256) del nivel triple
     else if (nblogico < INDIRECTOS2)
     {
         *ptr = inodo->punterosIndirectos[2];
@@ -632,37 +662,46 @@ int obtener_nRangoBL(struct inodo *inodo, unsigned int nblogico, unsigned int *p
  */
 int obtener_indice(unsigned int nblogico, int nivel_punteros)
 {
+    // Nivel Directo. El índice es directamente el número de bloque (0-11)
     if (nblogico < DIRECTOS)
     {
         return nblogico; // Directo, no hay índice dentro de bloque
     }
+    // Indirecto Simple. Restamos los 12 bloques directos para relativizar el índice al rango [0-255]
     else if (nblogico < INDIRECTOS0)
     {
         return nblogico - DIRECTOS; // Indirecto 0 (nivel 1)
     }
+    // Indirecto Doble
     else if (nblogico < INDIRECTOS1)
-    { // Indirecto 1
+    {
         if (nivel_punteros == 2)
         {
+            // Dividimos entre 256 para saber en qué bloque intermedio caerá
             return (nblogico - INDIRECTOS0) / NPUNTEROS;
         }
         else if (nivel_punteros == 1)
         {
+            // El módulo (%) con 256 nos da el resto, que es la posición exacta en el bloque final
             return (nblogico - INDIRECTOS0) % NPUNTEROS;
         }
     }
+    // Indirecto Triple. Usamos la descomposición polinomial en base 256
     else if (nblogico < INDIRECTOS2)
     { // Indirecto 2
         if (nivel_punteros == 3)
         {
+            // Índice superior: División entera entre 65536 (256^2)
             return (nblogico - INDIRECTOS1) / (NPUNTEROS * NPUNTEROS);
         }
         else if (nivel_punteros == 2)
         {
+            // Índice intermedio: Cogemos el resto de la división anterior y lo dividimos entre 256
             return ((nblogico - INDIRECTOS1) % (NPUNTEROS * NPUNTEROS)) / NPUNTEROS;
         }
         else if (nivel_punteros == 1)
         {
+            // Índice inferior (puntero a datos): Es el resto de dividir la parte intermedia entre 256
             return ((nblogico - INDIRECTOS1) % (NPUNTEROS * NPUNTEROS)) % NPUNTEROS;
         }
     }
@@ -686,6 +725,7 @@ int obtener_indice(unsigned int nblogico, int nivel_punteros)
 int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned char reservar)
 {
     struct inodo inodo;
+    // ptr será la "dirección actual" y ptr_ant la "dirección anterior" para ir navegando por los bloques de punteros
     unsigned int ptr, ptr_ant;
     int salvar_inodo = 0;
     unsigned int buffer[NPUNTEROS];
@@ -698,25 +738,30 @@ int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned c
     // Obtenemos en qué rango cae el bloque lógico y el puntero inicial
     ptr = 0;
     nRangoBL = obtener_nRangoBL(&inodo, nblogico, &ptr);
+    // Esta variable nos servirá para saber a qué nivel de indirección estamos en cada momento del bucle
     nivel_punteros = nRangoBL; // Empezamos por el nivel más alto
 
-    // Iteramos bajando niveles hasta llegar a los datos (nivel 0 implícito al salir del while)
+    // Bucle de navegación de árbol.
+    // Empezamos en el nivel más alto de indirección y vamos bajando (nivel_punteros--)
+    // hasta llegar al nivel 0, que es donde se encuentra el bloque de datos real.
     while (nivel_punteros > 0)
     {
-        if (ptr == 0)
-        { // Hueco en los punteros intermedios
+        if (ptr == 0) {
+            // Hueco detectado (ptr == 0). Si 'reservar' es 0 (modo lectura), 
+            // devolvemos fallo silencioso porque el bloque no existe
             if (reservar == 0)
                 return FALLO; // Error si solo consultamos
 
-            // Reservar bloque de punteros y poner a 0
+            // Si 'reservar' es 1, creamos el bloque índice intermedio
             ptr = reservar_bloque();
             inodo.numBloquesOcupados++;
             inodo.ctime = time(NULL);
-            salvar_inodo = 1; // Habrá que guardar cambios en el inodo al final
+            salvar_inodo = 1; // Flag para no olvidar guardar el inodo al final
 
             // Si el bloque nuevo cuelga directamente del inodo
             if (nivel_punteros == nRangoBL)
             {
+                // Si estamos en lo más alto del árbol, el puntero se guarda directamente en la estructura del inodo
                 inodo.punterosIndirectos[nRangoBL - 1] = ptr;
                 #if DEBUGN4 || DEBUGN5 || DEBUGN6
                 fprintf(stderr, BLACK "[traducir_bloque_inodo() -> inodo.punterosIndirectos[%d] = %d (reservado BF %d para punteros_nivel%d)]\n" RESET,
@@ -731,6 +776,10 @@ int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned c
                 fprintf(stderr, BLACK "[traducir_bloque_inodo() -> punteros_nivel%d [%d] = %d (reservado BF %d para punteros_nivel%d)]\n" RESET,
                        nivel_punteros + 1, indice, ptr, ptr, nivel_punteros);
                 #endif
+                // Este buffer no tiene por qué solo contener la dirección ptr_ant:
+                // Si vamos un par de líneas más abajo, veremos que, si el bloque de punteros ya existía, 
+                //lo leíamos en lugar de reservar uno nuevo. En ese caso, el buffer se habría llenado con las direcciones anteriores, 
+                //y solo actualizaríamos la que nos interesa (buffer[indice] = ptr).
                 bwrite(ptr_ant, buffer);
             }
 
@@ -743,14 +792,16 @@ int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned c
             bread(ptr, buffer);
         }
 
-        // Preparamos para el siguiente nivel
+        // Avance iterativo. Calculamos el índice que nos toca explorar,
+        // guardamos el bloque actual como 'padre' (ptr_ant), y avanzamos al hijo (ptr)
         indice = obtener_indice(nblogico, nivel_punteros);
         ptr_ant = ptr;        // Guardamos el bloque actual (padre)
         ptr = buffer[indice]; // Avanzamos al siguiente puntero (hijo)
         nivel_punteros--;
     }
 
-    // Al salir del bucle, ptr contiene la dirección del bloque de DATOS (o 0 si no existe)
+    // Al salir del bucle while, ya estamos al nivel de los DATOS
+    // Aplicamos exactamente la misma lógica: si es lectura fallamos, si es escritura reservamos
     if (ptr == 0)
     {
         if (reservar == 0)
@@ -763,7 +814,7 @@ int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned c
         salvar_inodo = 1;
 
         if (nRangoBL == 0)
-        { // Directo
+        { // Si era un puntero directo, lo guardamos en el array del inodo
             inodo.punterosDirectos[nblogico] = ptr;
             #if DEBUGN4 || DEBUGN5 || DEBUGN6
             fprintf(stderr, BLACK "[traducir_bloque_inodo() -> inodo.punterosDirectos[%d] = %d (reservado BF %d para BL %d)]\n" RESET,
@@ -771,7 +822,7 @@ int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned c
             #endif
         }
         else
-        { // Indirecto (ptr_ant tiene el bloque de punteros de nivel 1)
+        { // Si era indirecto, lo guardamos en el buffer del índice más bajo (nivel 1) y escribimos
             buffer[indice] = ptr;
             #if DEBUGN4 || DEBUGN5 || DEBUGN6
             fprintf(stderr, BLACK "[traducir_bloque_inodo() -> punteros_nivel1 [%d] = %d (reservado BF %d para BL %d)]\n" RESET,
@@ -781,7 +832,7 @@ int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned c
         }
     }
 
-    // Guardamos el inodo solo si hubo cambios
+    // Optimización: solo hacemos la pesada operación de escribir_inodo en disco si realmente hemos modificado algo.
     if (salvar_inodo)
     {
         escribir_inodo(ninodo, &inodo);
@@ -798,6 +849,8 @@ int traducir_bloque_inodo(unsigned int ninodo, unsigned int nblogico, unsigned c
  * liberar_directos
  * ------
  * Recorre y libera los bloques de datos apuntados por los punteros directos.
+ * Incrementa 'nBL' hasta 12, dejando el contador listo para que la zona de
+ * indirectos sepa exactamente por dónde empezar.
  * Parámetros:
  * - nBL: puntero al contador global del bloque lógico actual.
  * - ultimoBL: tope máximo del fichero.
@@ -817,7 +870,7 @@ int liberar_directos(unsigned int *nBL, unsigned int ultimoBL, struct inodo *ino
     {
         if (*nBL > ultimoBL)
         {
-            *eof = 1;
+            *eof = 1; // Si el archivo era pequeño, activamos EOF para que las funciones de indirectos no hagan nada
             break;
         }
 
@@ -827,7 +880,7 @@ int liberar_directos(unsigned int *nBL, unsigned int ultimoBL, struct inodo *ino
             inodo->punterosDirectos[i] = 0;
             liberados++;
         }
-        (*nBL)++;
+        (*nBL)++; // nBL avanza de 1 en 1 porque son bloques de datos reales
     }
     return liberados;
 }
@@ -839,6 +892,7 @@ int liberar_directos(unsigned int *nBL, unsigned int ultimoBL, struct inodo *ino
  * en las zonas indirectas.
  * Parámetros:
  * - nBL: puntero al contador global del bloque lógico actual.
+ * - primerBL: bloque lógico inicial del rango a borrar.
  * - ultimoBL: tope máximo de bloques lógicos del inodo.
  * - puntero_bloque: puntero al bloque (de datos o de punteros) a tratar.
  * - nivel_punteros: profundidad en la jerarquía (1, 2, 3).
@@ -857,12 +911,13 @@ int liberar_indirectos_recursivo(unsigned int *nBL, unsigned int primerBL, unsig
     int liberados = 0;
     int modificado = 0; // Para saber si hay que escribir en disco
 
-    // Calculamos cuántos bloques lógicos abarca este nivel de punteros
+    // Calculamos cuántos bloques lógicos abarca este nivel de punteros (1 bloque = NPUNTEROS hijos, 2 bloques = NPUNTEROS^2...)
     unsigned int saltos = 1;
     for (int k = 0; k < nivel_punteros; k++) {
         saltos *= NPUNTEROS;
     }
 
+    // Si la rama está vacía o ya ha pasado el rango a borrar, saltamos el bloque
     // Entramos aquí si el bloque está vacío (0) O si todo el rango que abarca
     // está estrictamente ANTES de primerBL (por tanto, no hay que borrarlo ni leerlo)
     if (*puntero_bloque == 0 || (*nBL + saltos <= primerBL))
@@ -929,7 +984,7 @@ int liberar_indirectos_recursivo(unsigned int *nBL, unsigned int primerBL, unsig
         }
     }
 
-    // Comprobamos si el bloque de punteros ha quedado vacío (todo ceros)
+    // Tras limpiar a los hijos, comprobamos si el bloque de punteros ha quedado vacío (todo ceros)
     memset(buffer_ceros, 0, BLOCKSIZE);
     if (memcmp(bloque_punteros, buffer_ceros, BLOCKSIZE) == 0)
     {
@@ -949,7 +1004,7 @@ int liberar_indirectos_recursivo(unsigned int *nBL, unsigned int primerBL, unsig
             if (bwrite(*puntero_bloque, bloque_punteros) == FALLO)
                 return FALLO;
         
-            fprintf(stderr, BLACK "[liberar_bloques_inodo() -> salvado BF %d de punteros_nivel%d correspondiente al BL %d]\n" RESET, *puntero_bloque, nivel_punteros, *nBL);
+            fprintf(stderr, ORANGE "[liberar_bloques_inodo() -> salvado BF %d de punteros_nivel%d correspondiente al BL %d]\n" RESET, *puntero_bloque, nivel_punteros, *nBL);
             cbwrites++; // Contamos la escritura del bloque de punteros
         }
     }
@@ -966,6 +1021,17 @@ int liberar_indirectos_recursivo(unsigned int *nBL, unsigned int primerBL, unsig
  * ------
  * Libera todos los bloques físicos de datos y punteros que pertenecen a un inodo
  * a partir de un bloque lógico dado.
+ * 
+ * EXPLICACIÓN DEL ALGORITMO DE BORRADO
+ * El borrado de bloques se hace "de abajo hacia arriba".
+ * 1. Primero navegamos hasta el nivel más profundo (los bloques de datos).
+ * 2. Liberamos el bloque de datos usando liberar_bloque().
+ * 3. En la RAM, ponemos a 0 el puntero que apuntaba a ese dato dentro de su bloque padre.
+ * 4. TRUCO DE OPTIMIZACIÓN (memcmp): Usamos memcmp para comparar el bloque padre entero
+ * con un buffer auxiliar lleno de ceros. Si son idénticos, significa que hemos borrado 
+ * TODOS los hijos de ese bloque índice. En ese caso, borramos también el bloque índice
+ * y repetimos el proceso hacia arriba para no dejar "bloques huérfanos" ocupando espacio.
+ * 
  * Parámetros:
  * - primerBL: número del primer bloque lógico a partir del cual borrar.
  * - inodo: puntero al inodo sobre el que operar.
@@ -1091,20 +1157,24 @@ int liberar_inodo(unsigned int ninodo)
     if (leer_inodo(ninodo, &inodo) == FALLO)
         return FALLO;
 
-    // 2. Liberar todos sus bloques
+    // 2. Liberar todos sus bloques de datos y punteros asociados
+    // Pasamos primerBL = 0 porque queremos borrar todo el archivo
     int bloques_liberados = liberar_bloques_inodo(0, &inodo);
     inodo.numBloquesOcupados -= bloques_liberados;
 
+    // 3. Reseteamos la estructura del inodo
     // Si ha ido bien, debería ser 0 (o quedarán los de metadatos si no los contamos igual)
     // Forzamos a 0 por seguridad y tipo libre
     inodo.tipo = 'l';
     inodo.tamEnBytesLog = 0;
     inodo.numBloquesOcupados = 0;
 
-    // 3. Actualizar lista de inodos libres (Pila/Lista enlazada)
+    // 4. Actualizar lista de inodos libres
     if (bread(posSB, &SB) == FALLO)
         return FALLO;
 
+    // Lógica LIFO (Last In, First Out) (pila/lista enlazada)
+    // Insertamos el inodo recién liberado en la CABEZA de la lista enlazada de inodos libres.
     // El inodo liberado apunta al que antes era el primero
     inodo.punterosDirectos[0] = SB.posPrimerInodoLibre;
 
