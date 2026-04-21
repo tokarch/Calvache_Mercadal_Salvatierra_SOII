@@ -1,5 +1,5 @@
 // directorios.h
-// Descripción: Estructuras y funciones para la gestión de directorios (Nivel 9)
+// Descripción: Estructuras y funciones para la gestión de directorios (Nivel 10)
 
 #ifndef DIRECTORIOS_H
 #define DIRECTORIOS_H
@@ -41,8 +41,12 @@ int mi_dir(const char *camino, char *buffer, char tipo);
 int mi_chmod(const char *camino, unsigned char permisos);
 int mi_stat(const char *camino, struct STAT *p_stat);
 
-// Funciones Nivel 9 (NUEVAS)
+// Funciones Nivel 9
 int mi_write(const char *camino, const void *buf, unsigned int offset, unsigned int nbytes);
 int mi_read(const char *camino, void *buf, unsigned int offset, unsigned int nbytes);
+
+// Funciones Nivel 10 (NUEVAS)
+int mi_link(const char *camino1, const char *camino2);
+int mi_unlink(const char *camino);
 
 #endif // DIRECTORIOS_H

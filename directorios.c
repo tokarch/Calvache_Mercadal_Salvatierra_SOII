@@ -1,5 +1,5 @@
 // directorios.c
-// Descripción: Implementación de la capa de directorios (Nivel 9).
+// Descripción: Implementación de la capa de directorios (Nivel 10).
 
 #include "directorios.h"
 #include <string.h>
@@ -514,4 +514,117 @@ int mi_read(const char *camino, void *buf, unsigned int offset, unsigned int nby
     int bytes_leidos = mi_read_f(p_inodo, buf, offset, nbytes);
 
     return bytes_leidos;
+}
+
+// ==============================================================================
+// FUNCIONES NIVEL 10
+// ==============================================================================
+
+/**
+ * mi_link
+ * Crea un enlace físico (hard link) de camino2 apuntando al inodo de camino1.
+ */
+int mi_link(const char *camino1, const char *camino2) {
+    unsigned int p_inodo_dir1 = 0, p_inodo1 = 0, p_entrada1 = 0;
+    unsigned int p_inodo_dir2 = 0, p_inodo2 = 0, p_entrada2 = 0;
+    int error;
+    struct inodo inodo1;
+
+    // 1. Verificar existencia de camino1 (origen)
+    error = buscar_entrada(camino1, &p_inodo_dir1, &p_inodo1, &p_entrada1, 0, 0);
+    if (error < 0) return error;
+
+    // 2. Leer inodo1 para verificar que es fichero y tenemos permisos
+    if (leer_inodo(p_inodo1, &inodo1) == FALLO) return FALLO;
+
+    if (inodo1.tipo == 'd') {
+        return ERROR_NO_SE_PUEDE_CREAR_ENTRADA_EN_FICHERO; // No se permiten enlaces a directorios (para evitar ciclos)
+    }
+    if ((inodo1.permisos & 4) != 4) { // Permiso lectura
+        return ERROR_PERMISO_LECTURA;
+    }
+
+    // 3. Crear entrada para camino2 (destino)
+    // Usamos buscar_entrada con reservar=1. Esto creará un inodo NUEVO automáticamente.
+    error = buscar_entrada(camino2, &p_inodo_dir2, &p_inodo2, &p_entrada2, 1, 6);
+    if (error < 0) return error; // Si ya existe, devolverá error
+
+    // 4. "Truco" del enlace físico:
+    // buscar_entrada ha creado una entrada en el directorio padre de camino2 que apunta a p_inodo2 (nuevo).
+    // Queremos que apunte a p_inodo1.
+    
+    struct entrada entrada;
+    // Leemos la entrada que acabamos de crear en el directorio padre (p_inodo_dir2)
+    if (mi_read_f(p_inodo_dir2, &entrada, p_entrada2 * sizeof(struct entrada), sizeof(struct entrada)) < 0) return FALLO;
+
+    // Modificamos el puntero al inodo
+    entrada.ninodo = p_inodo1;
+
+    // Escribimos la entrada modificada
+    if (mi_write_f(p_inodo_dir2, &entrada, p_entrada2 * sizeof(struct entrada), sizeof(struct entrada)) < 0) return FALLO;
+
+    // 5. Liberamos el inodo2 que se creó innecesariamente
+    if (liberar_inodo(p_inodo2) == FALLO) return FALLO;
+
+    // 6. Actualizamos el inodo1 (el original)
+    inodo1.nlinks++;
+    inodo1.ctime = time(NULL);
+    if (escribir_inodo(p_inodo1, &inodo1) == FALLO) return FALLO;
+
+    return EXITO;
+}
+
+/**
+ * mi_unlink
+ * Borra la entrada de directorio especificada. Si es el último enlace, libera el inodo.
+ */
+int mi_unlink(const char *camino) {
+    unsigned int p_inodo_dir = 0, p_inodo = 0, p_entrada = 0;
+    int error;
+    struct inodo inodo_dir, inodo_borrar;
+    struct entrada entrada;
+
+    // 1. Buscar la entrada a borrar
+    error = buscar_entrada(camino, &p_inodo_dir, &p_inodo, &p_entrada, 0, 0);
+    if (error < 0) return error;
+
+    // 2. Verificaciones sobre lo que vamos a borrar
+    if (leer_inodo(p_inodo, &inodo_borrar) == FALLO) return FALLO;
+
+    if (inodo_borrar.tipo == 'd' && inodo_borrar.tamEnBytesLog > 0) {
+        // Es un directorio y no está vacío
+        return ERROR_ENTRADA_YA_EXISTENTE; // Reusamos código o definimos ERROR_DIRECTORIO_NO_VACIO
+    }
+
+    // 3. Eliminar la entrada del directorio padre
+    if (leer_inodo(p_inodo_dir, &inodo_dir) == FALLO) return FALLO;
+
+    int num_entradas = inodo_dir.tamEnBytesLog / sizeof(struct entrada);
+
+    // Si no es la última entrada, tenemos que compactar el directorio
+    // Copiamos la última entrada en la posición de la que borramos
+    if (p_entrada != num_entradas - 1) {
+        // Leer la última entrada
+        if (mi_read_f(p_inodo_dir, &entrada, (num_entradas - 1) * sizeof(struct entrada), sizeof(struct entrada)) < 0) return FALLO;
+        
+        // Escribirla en la posición hueca (p_entrada)
+        if (mi_write_f(p_inodo_dir, &entrada, p_entrada * sizeof(struct entrada), sizeof(struct entrada)) < 0) return FALLO;
+    }
+
+    // Truncamos el directorio padre para eliminar la última posición
+    if (mi_truncar_f(p_inodo_dir, (num_entradas - 1) * sizeof(struct entrada)) == FALLO) return FALLO;
+
+    // 4. Actualizar el inodo borrado (decrementar nlinks)
+    inodo_borrar.nlinks--;
+
+    if (inodo_borrar.nlinks == 0) {
+        // Si no quedan enlaces, liberar inodo y sus datos
+        if (liberar_inodo(p_inodo) == FALLO) return FALLO;
+    } else {
+        // Si quedan enlaces, solo actualizamos ctime
+        inodo_borrar.ctime = time(NULL);
+        if (escribir_inodo(p_inodo, &inodo_borrar) == FALLO) return FALLO;
+    }
+
+    return EXITO;
 }
