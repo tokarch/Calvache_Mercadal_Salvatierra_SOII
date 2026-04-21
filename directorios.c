@@ -1,9 +1,11 @@
 // directorios.c
-// Descripción: Implementación de la capa de directorios (Nivel 7).
+// Descripción: Implementación de la capa de directorios (Nivel 8).
 
 #include "directorios.h"
 #include <string.h>
+#include <time.h>
 
+// --- FUNCIONES NIVEL 7 (extraer_camino, buscar_entrada, etc.) ---
 /**
  * extraer_camino
  * Separa el primer componente del camino del resto.
@@ -257,4 +259,177 @@ void mostrar_error_buscar_entrada(int error)
         fprintf(stderr, "Error: No es un directorio.\n");
         break;
     }
+}
+
+// ==============================================================================
+// FUNCIONES NIVEL 8
+// ==============================================================================
+
+/**
+ * mi_creat
+ * Crea un fichero o directorio en la ruta especificada.
+ * Si el camino termina en '/', se asume directorio.
+ */
+int mi_creat(const char *camino, unsigned char permisos) {
+    unsigned int p_inodo_dir = 0; // Raíz
+    unsigned int p_inodo = 0;
+    unsigned int p_entrada = 0;
+    int error;
+
+    // Llamamos a buscar_entrada con reservar = 1 para crear
+    error = buscar_entrada(camino, &p_inodo_dir, &p_inodo, &p_entrada, 1, permisos);
+    
+    if (error < 0) {
+        return error;
+    }
+    return EXITO;
+}
+
+/**
+ * mi_dir
+ * Pone el contenido del directorio en un buffer.
+ * Soporta listar un solo fichero si 'camino' apunta a un fichero.
+ * 'tipo' es un flag que indica el formato: 'd' (directorio/simple) o 'f' (fichero/detallado?)
+ * NOTA: Para este nivel, adaptamos la firma según el PDF para soportar ls -l
+ * Parámetro 'tipo': Lo usaremos para filtrar o validar, pero el PDF sugiere 
+ * usarlo para distinguir visualización.
+ */
+int mi_dir(const char *camino, char *buffer, char tipo) {
+    unsigned int p_inodo_dir = 0;
+    unsigned int p_inodo = 0;
+    unsigned int p_entrada = 0;
+    int error;
+    struct inodo inodo;
+    
+    // 1. Buscamos la entrada
+    error = buscar_entrada(camino, &p_inodo_dir, &p_inodo, &p_entrada, 0, 4); // Permisos lectura
+    if (error < 0) return error;
+
+    // 2. Leemos el inodo
+    if (leer_inodo(p_inodo, &inodo) == FALLO) return FALLO;
+
+    // 3. Comprobación de consistencia tipo camino vs tipo inodo
+    // Si el usuario puso '/' al final (tipo 'd') pero es fichero, error.
+    if (tipo == 'd' && inodo.tipo != 'd') {
+        return ERROR_NO_SE_PUEDE_CREAR_ENTRADA_EN_FICHERO; // Reusamos este error o creamos uno
+    }
+
+    // Inicializamos buffer
+    strcpy(buffer, "");
+
+    // CASO A: Es un fichero -> Mostramos su información
+    if (inodo.tipo == 'f') {
+        char tmp[TAMFILA];
+        char fecha[50];
+        struct tm *tm;
+
+        tm = localtime(&inodo.mtime);
+        sprintf(fecha, "%d-%02d-%02d %02d:%02d:%02d", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+        // Formato: Tipo Permisos mTime Tamaño Nombre
+        sprintf(tmp, "%c\t%c%c%c\t%s\t%d\t%s\n",
+                inodo.tipo,
+                (inodo.permisos & 4) ? 'r' : '-',
+                (inodo.permisos & 2) ? 'w' : '-',
+                (inodo.permisos & 1) ? 'x' : '-',
+                fecha,
+                inodo.tamEnBytesLog,
+                camino); // Usamos el camino completo o extraemos nombre
+        strcat(buffer, tmp);
+        return 1;
+    }
+
+    // CASO B: Es un directorio -> Iteramos sus entradas
+    if (inodo.tipo == 'd') {
+        struct entrada buffer_entradas[BLOCKSIZE / sizeof(struct entrada)];
+        struct inodo inodo_ent;
+        int offset = 0;
+        int entradas_leidas = 0;
+        int num_entradas = 0;
+        
+        // Leemos entradas del directorio
+        while (offset < inodo.tamEnBytesLog) {
+            int leidos = mi_read_f(p_inodo, buffer_entradas, offset, BLOCKSIZE);
+            if (leidos < 0) return leidos; // Error lectura
+            
+            num_entradas = leidos / sizeof(struct entrada);
+            
+            for (int i = 0; i < num_entradas; i++) {
+                // Leemos el inodo de la entrada para obtener sus detalles
+                leer_inodo(buffer_entradas[i].ninodo, &inodo_ent);
+                
+                char tmp[TAMFILA];
+                char fecha[50];
+                struct tm *tm;
+
+                tm = localtime(&inodo_ent.mtime);
+                sprintf(fecha, "%d-%02d-%02d %02d:%02d:%02d", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+                // Colores simples: Directorios en Azul, Ficheros en Verde
+                char color[10] = "";
+                if(inodo_ent.tipo == 'd') strcpy(color, "\x1b[34m"); // Azul
+                else strcpy(color, "\x1b[32m"); // Verde
+
+                snprintf(tmp, sizeof(tmp), "%c\t%c%c%c\t%s\t%d\t%s%s\x1b[0m\n",
+                    inodo_ent.tipo,
+                    (inodo_ent.permisos & 4) ? 'r' : '-',
+                    (inodo_ent.permisos & 2) ? 'w' : '-',
+                    (inodo_ent.permisos & 1) ? 'x' : '-',
+                    fecha,
+                    inodo_ent.tamEnBytesLog,
+                    color,
+                    buffer_entradas[i].nombre);
+
+                if (strlen(buffer) + strlen(tmp) < TAMBUFFER) {
+                    strcat(buffer, tmp);
+                    entradas_leidas++;
+                }
+            }
+            offset += leidos;
+        }
+        return entradas_leidas;
+    }
+
+    return EXITO;
+}
+
+/**
+ * mi_chmod
+ * Cambia los permisos de un fichero/directorio.
+ */
+int mi_chmod(const char *camino, unsigned char permisos) {
+    unsigned int p_inodo_dir = 0;
+    unsigned int p_inodo = 0;
+    unsigned int p_entrada = 0;
+    int error;
+
+    // Buscamos la entrada (no reservamos, solo consultamos)
+    error = buscar_entrada(camino, &p_inodo_dir, &p_inodo, &p_entrada, 0, 0);
+    if (error < 0) return error;
+
+    // Llamamos a la función de nivel inferior
+    return mi_chmod_f(p_inodo, permisos);
+}
+
+/**
+ * mi_stat
+ * Obtiene la información del inodo de un fichero/directorio.
+ */
+int mi_stat(const char *camino, struct STAT *p_stat) {
+    unsigned int p_inodo_dir = 0;
+    unsigned int p_inodo = 0;
+    unsigned int p_entrada = 0;
+    int error;
+
+    error = buscar_entrada(camino, &p_inodo_dir, &p_inodo, &p_entrada, 0, 0);
+    if (error < 0) return error;
+
+    // Llamamos a la función de nivel inferior
+    if (mi_stat_f(p_inodo, p_stat) == FALLO) return FALLO;
+    
+    // Devolvemos el número de inodo (truco: lo ponemos en una variable global o lo imprimirá el main)
+    // El enunciado dice "Mostrar también el nº de inodo", eso lo hará mi_stat.c
+    // Pero necesitamos devolverlo. Podemos usar un campo auxiliar o devolverlo en return si EXITO=0.
+    // Como mi_stat_f devuelve EXITO/FALLO, devolveremos el ninodo si éxito.
+    return p_inodo; 
 }
