@@ -135,59 +135,65 @@ int initSB(unsigned int nbloques, unsigned int ninodos)
 // Inicializa el Mapa de Bits
 int initMB()
 {
-    // Leemos el SB para saber las dimensiones
     struct superbloque SB;
     if (bread(posSB, &SB) == FALLO)
         return FALLO;
 
-    // Tenemos que marcar como OCUPADOS (1) los bloques de metadatos (SB + MB + AI).
-    // Como los metadatos van del bloque 0 hasta posPrimerBloqueDatos - 1, la cantidad 
-    // exacta de bloques de metadatos equivale al valor numérico de posPrimerBloqueDatos
+    // Cantidad de bloques que ocupan los metadatos (SB + MB + AI)
     unsigned int tamMetadatos = SB.posPrimerBloqueDatos;
 
-    // Convertimos esa cantidad de bloques a bytes completos y bits sueltos
+    // Convertimos esa cantidad a bytes completos y bits sueltos
     unsigned int bytesCompletos = tamMetadatos / 8;
     unsigned int bitsRestantes = tamMetadatos % 8;
 
     unsigned char buffer[BLOCKSIZE];
-    memset(buffer, 0, BLOCKSIZE); // El resto de bloques (datos) se quedan a 0 (libres)
-
-    // Recorremos los bloques del MB
-    // (Generalmente cabe en 1, pero hacemos el bucle por si el disco es enorme)
     unsigned int bytesEscritos = 0;
 
     for (unsigned int i = SB.posPrimerBloqueMB; i <= SB.posUltimoBloqueMB; i++)
     {
-        // Para cada byte del bloque
-        for (int j = 0; j < BLOCKSIZE; j++)
+        // Limpiamos el buffer poniéndolo todo a 0 (libres)
+        memset(buffer, 0, BLOCKSIZE);
+
+        if (bytesEscritos < bytesCompletos)
         {
-            if (bytesEscritos < bytesCompletos)
+            unsigned int bytesRestantesBloque = bytesCompletos - bytesEscritos;
+
+            // COMENTARIO DE JOSÉ DAVID: OPTIMIZACIÓN CON MEMSET.
+            // En lugar de iterar byte a byte, usamos memset para llenar de golpe con 255 (0xFF o 1s binarios)
+            // los bytes que necesitamos marcar como ocupados en este bloque físico.
+            if (bytesRestantesBloque >= BLOCKSIZE)
             {
-                // Marca 8 bloques como ocupados de golpe
-                buffer[j] = 0xFF; // 11111111 -> Todo ocupado
-                bytesEscritos++;
+                // El bloque del MB entero debe marcarse como ocupado
+                // 255 en decimal es 11111111 en binario, así que cada byte se llena con 1s
+                memset(buffer, 255, BLOCKSIZE);
+                bytesEscritos += BLOCKSIZE;
             }
-            else if (bytesEscritos == bytesCompletos)
+            else
             {
-                // Tratamiento de los "bits sueltos" restantes usando una máscara
-                // Si sobran 3 bits, desplazamos 0xFF a la izquierda (8 - 3 = 5 posiciones)
-                // 11111111 << 5 se convierte en 11100000. Así solo marcamos los 3 primeros
-                unsigned char mascara = 0;
+                // Solo una parte del bloque del MB se marca como ocupada
+                memset(buffer, 255, bytesRestantesBloque);
+                bytesEscritos += bytesRestantesBloque;
+
+                // Si sobran bits, los metemos en el byte inmediatamente posterior
                 if (bitsRestantes > 0)
                 {
-                    mascara = (unsigned char)(0xFF << (8 - bitsRestantes)); // Desplazamos y enmascaramos para quedarnos solo con los bits necesarios
+                    buffer[bytesRestantesBloque] = (unsigned char)(0xFF << (8 - bitsRestantes));
+                    bitsRestantes = 0;
                 }
-                buffer[j] = mascara; // Si no quedan bits restantes, la mascara sera 0
-                bytesEscritos++;     // Ya hemos "gastado" la parte de bits
-                bitsRestantes = 0;   // No quedan bits por marcar
             }
         }
+        else if (bitsRestantes > 0)
+        {
+            // CASO EXTREMO:
+            // Si los bytes completos cuadraron exactamente al final del bloque anterior,
+            // los bits restantes deben colocarse en el primer byte del bloque actual
+            buffer[0] = (unsigned char)(0xFF << (8 - bitsRestantes));
+            bitsRestantes = 0;
+        }
+
         // Escribimos el bloque del MB modificado
         if (bwrite(i, buffer) == FALLO)
             return FALLO;
-
-        // Reiniciamos buffer para el siguiente bloque (aunque ya será todo 0)
-        memset(buffer, 0, BLOCKSIZE);
     }
 
     // Restamos los metadatos de los bloques libres en el SB y lo guardamos
