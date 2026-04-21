@@ -1,0 +1,12 @@
+disco
+ext*
+*.o
+mi_mkfs
+mi_mkdir
+mi_touch
+mi_ls
+mi_chmod
+mi_stat
+mi_escribir
+mi_cat
+mi_rm
