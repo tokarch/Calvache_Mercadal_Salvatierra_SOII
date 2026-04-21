@@ -1,9 +1,19 @@
 // directorios.c
-// Descripción: Implementación de la capa de directorios (Nivel 8).
+// Descripción: Implementación de la capa de directorios (Nivel 9).
 
 #include "directorios.h"
 #include <string.h>
 #include <time.h>
+
+// Estructura para la caché de directorios (Nivel 9)
+struct UltimaEntrada {
+    char camino[TAMNOMBRE * PROFUNDIDAD];
+    int p_inodo;
+};
+
+// Variables globales estáticas para la caché (una para lectura, otra para escritura)
+static struct UltimaEntrada UltimaEntradaLectura;
+static struct UltimaEntrada UltimaEntradaEscritura;
 
 // --- FUNCIONES NIVEL 7 (extraer_camino, buscar_entrada, etc.) ---
 /**
@@ -432,4 +442,76 @@ int mi_stat(const char *camino, struct STAT *p_stat) {
     // Pero necesitamos devolverlo. Podemos usar un campo auxiliar o devolverlo en return si EXITO=0.
     // Como mi_stat_f devuelve EXITO/FALLO, devolveremos el ninodo si éxito.
     return p_inodo; 
+}
+
+// ==============================================================================
+// FUNCIONES NIVEL 9
+// ==============================================================================
+
+/**
+ * mi_write
+ * Escribe contenido en un fichero indicado por su ruta.
+ * Utiliza una caché para no llamar a buscar_entrada si escribimos varias veces en el mismo fichero.
+ */
+int mi_write(const char *camino, const void *buf, unsigned int offset, unsigned int nbytes) {
+    unsigned int p_inodo_dir = 0;
+    unsigned int p_inodo = 0;
+    unsigned int p_entrada = 0;
+    int error;
+
+    // 1. Comprobar caché de escritura
+    if (strcmp(UltimaEntradaEscritura.camino, camino) == 0) {
+        // Acierto en caché (escribimos en el mismo fichero que la última vez)
+        p_inodo = UltimaEntradaEscritura.p_inodo;
+        // Opcional: Debug visual
+        // fprintf(stderr, "[mi_write() -> Utilizamos la caché de escritura]\n");
+    } else {
+        // Fallo en caché: buscamos la entrada
+        error = buscar_entrada(camino, &p_inodo_dir, &p_inodo, &p_entrada, 0, 0);
+        if (error < 0) return error;
+
+        // Actualizamos la caché
+        strcpy(UltimaEntradaEscritura.camino, camino);
+        UltimaEntradaEscritura.p_inodo = p_inodo;
+        // fprintf(stderr, "[mi_write() -> Actualizamos la caché de escritura]\n");
+    }
+
+    // 2. Escribir usando la función de nivel inferior (ficheros.c)
+    // mi_write_f verificará los permisos de escritura del inodo
+    int bytes_escritos = mi_write_f(p_inodo, buf, offset, nbytes);
+    
+    return bytes_escritos;
+}
+
+/**
+ * mi_read
+ * Lee contenido de un fichero indicado por su ruta.
+ * Utiliza caché de lectura.
+ */
+int mi_read(const char *camino, void *buf, unsigned int offset, unsigned int nbytes) {
+    unsigned int p_inodo_dir = 0;
+    unsigned int p_inodo = 0;
+    unsigned int p_entrada = 0;
+    int error;
+
+    // 1. Comprobar caché de lectura
+    if (strcmp(UltimaEntradaLectura.camino, camino) == 0) {
+        // Acierto en caché
+        p_inodo = UltimaEntradaLectura.p_inodo;
+        // fprintf(stderr, "[mi_read() -> Utilizamos la caché de lectura]\n");
+    } else {
+        // Fallo en caché: buscamos
+        error = buscar_entrada(camino, &p_inodo_dir, &p_inodo, &p_entrada, 0, 0);
+        if (error < 0) return error;
+
+        // Actualizamos la caché
+        strcpy(UltimaEntradaLectura.camino, camino);
+        UltimaEntradaLectura.p_inodo = p_inodo;
+        // fprintf(stderr, "[mi_read() -> Actualizamos la caché de lectura]\n");
+    }
+
+    // 2. Leer usando la función de nivel inferior
+    int bytes_leidos = mi_read_f(p_inodo, buf, offset, nbytes);
+
+    return bytes_leidos;
 }
