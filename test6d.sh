@@ -1,6 +1,7 @@
 # Adelaida
 # test6d.sh  #truncados parciales texto varios bloques
 
+set -e
 clear
 make clean
 make LEVEL=6

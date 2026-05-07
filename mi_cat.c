@@ -42,9 +42,11 @@ int main(int argc, char **argv) {
     // Gestionar errores si mi_read devolvió código negativo
     if (leidos < 0) {
         mostrar_error_buscar_entrada(leidos);
-    } else {
-        fprintf(stderr, "\nTotal bytes leídos: %d\n", total_leidos);
+        bumount();
+        return FALLO;
     }
+
+    fprintf(stderr, "\nTotal bytes leídos: %d\n", total_leidos);
 
     bumount();
     return EXITO;

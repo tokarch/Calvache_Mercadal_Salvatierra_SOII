@@ -28,10 +28,11 @@ int main(int argc, char **argv) {
 
     if (bytes_escritos < 0) {
         mostrar_error_buscar_entrada(bytes_escritos);
-        bytes_escritos = 0;
-    } else {
-        printf("Bytes escritos: %d\n", bytes_escritos);
+        bumount();
+        return FALLO;
     }
+
+    printf("Bytes escritos: %d\n", bytes_escritos);
 
     bumount();
     return EXITO;

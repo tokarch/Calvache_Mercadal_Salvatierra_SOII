@@ -1,6 +1,7 @@
 # Adelaida
 # test6c.sh #truncado total texto varios bloques
 
+set -e
 clear
 make clean
 make LEVEL=6

@@ -54,6 +54,12 @@ int main(int argc, char **argv)
         memset(buffer, 0, TAM_BUFFER);
     }
 
+    if (leidos < 0)
+    {
+        bumount();
+        return FALLO;
+    }
+
     fprintf(stderr, "\nTotal bytes leidos: %d\n", total_leidos);
 
     // Verificación final con stat

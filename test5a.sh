@@ -1,5 +1,6 @@
 # Adelaida
 # test5a.sh
+set -e
 clear
 make clean
 make LEVEL=5
@@ -15,7 +16,7 @@ echo
 echo -e "\x1B[38;2;17;245;120m################################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m$ ./escribir\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m#consultamos sintaxis comando\x1b[0m"
-./escribir
+./escribir || true
 echo
 echo -e "\x1B[38;2;17;245;120m################################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m$ ./escribir disco "123456789" 0\x1b[0m"
@@ -81,3 +82,8 @@ echo -e "\x1B[38;2;17;245;120m$ ./leer disco 5\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m#leemos el contenido de nuestro inodo 5\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m#(ha de contener lo mismo que el fichero externo ext3.txt)\x1b[0m"
 ./leer disco 5
+
+[ -s ext1.txt ] || { echo "FALLO: ext1.txt esta vacio o no existe"; exit 1; }
+[ -s ext2.txt ] || { echo "FALLO: ext2.txt esta vacio o no existe"; exit 1; }
+[ -s ext3.txt ] || { echo "FALLO: ext3.txt esta vacio o no existe"; exit 1; }
+echo "OK: test5a.sh completado"

@@ -1,5 +1,6 @@
 # Adelaida
 # test6a.sh
+set -e
 clear
 make clean
 make LEVEL=6

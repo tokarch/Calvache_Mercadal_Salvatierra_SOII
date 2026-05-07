@@ -2,6 +2,7 @@
 # scripte1.sh
 # Se ha cambiado make por make LEVEL=6 por la naturaleza del Makefile (leer README.txt)
 
+set -e
 clear
 make clean
 make LEVEL=6
@@ -14,7 +15,7 @@ echo -e "\x1B[38;2;17;245;120m$ ./leer_sf disco\x1b[0m"
 echo
 echo "################################################################################"
 echo -e "\x1B[38;2;17;245;120m$./escribir\x1b[0m"
-./escribir
+./escribir || true
 echo
 echo "################################################################################"
 echo -e "\x1B[38;2;17;245;120m$ ./escribir disco "$(cat texto2.txt)" 0"
@@ -29,7 +30,10 @@ echo -e "#cambiamos permisos del inodo 1 a 0\x1b[0m"
 echo
 echo -e "\x1B[38;2;17;245;120m$ ./leer disco 1"
 echo -e "#intentamos leer inodo 1 con permisos=0\x1b[0m"
-./leer disco 1
+if ./leer disco 1; then
+    echo "FALLO: leer deberia haber sido denegado con perm=0"
+    exit 1
+fi
 echo
 echo "################################################################################"
 echo -e "\x1B[38;2;17;245;120m$ ./permitir disco 1 6"
