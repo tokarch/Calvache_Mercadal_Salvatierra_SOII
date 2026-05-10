@@ -240,6 +240,7 @@ int initAI()
         {
             inodos[j].tipo = 'l'; // Libre
 
+            // Si aún no estamos en el último inodo
             if (contInodos < SB.totInodos)
             {
                 // Enlazamos la lista de inodos libres usando punterosDirectos[0]
@@ -453,6 +454,8 @@ int reservar_bloque()
  * ------
  * Libera un bloque determinado en el Mapa de Bits y actualiza el contador
  * en el Superbloque.
+ * NOTA: Se podría optimizar (la función abre el SB 2 veces, una en escribir_bit y otra para actualizar el contador), 
+ * pero se ha decidido mantener la simplicidad y claridad de la función como dicta el enunciado.
  * Parámetros:
  * - nbloque: número físico del bloque a liberar.
  * Retorno:
@@ -495,9 +498,12 @@ int escribir_inodo(unsigned int ninodo, struct inodo *inodo)
     if (bread(posSB, &SB) == FALLO)
         return FALLO;
 
+    // Vemos en qué bloque del AI (Array de Inodos) se encuentra el inodo que queremos escribir
     unsigned int nbloqueAI = (ninodo * INODOSIZE) / BLOCKSIZE;
+    // Sumamos el bloque relativo al bloque donde empieza el AI para obtener la ruta física absoluta
     unsigned int nbloqueabs = SB.posPrimerBloqueAI + nbloqueAI;
 
+    // Obtenemos el array de inodos
     struct inodo inodos[BLOCKSIZE / INODOSIZE];
     if (bread(nbloqueabs, inodos) == FALLO)
         return FALLO;
