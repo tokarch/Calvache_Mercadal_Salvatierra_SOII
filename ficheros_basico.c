@@ -149,15 +149,18 @@ int initMB()
     unsigned char buffer[BLOCKSIZE];
     unsigned int bytesEscritos = 0;
 
+    // Iteramos entre los bloques que ocupa el MB
     for (unsigned int i = SB.posPrimerBloqueMB; i <= SB.posUltimoBloqueMB; i++)
     {
         // Limpiamos el buffer poniéndolo todo a 0 (libres)
         memset(buffer, 0, BLOCKSIZE);
 
+        // Entramos si aún no hemos escrito todos los bytes completos que ocupan los metadatos
         if (bytesEscritos < bytesCompletos)
         {
             unsigned int bytesRestantesBloque = bytesCompletos - bytesEscritos;
 
+            // Entramos si la cantidad de bytes por marcar supera a la de un bloque
             // COMENTARIO DE JOSÉ DAVID: OPTIMIZACIÓN CON MEMSET.
             // En lugar de iterar byte a byte, usamos memset para llenar de golpe con 255 (0xFF o 1s binarios)
             // los bytes que necesitamos marcar como ocupados en este bloque físico.
@@ -182,6 +185,7 @@ int initMB()
                 }
             }
         }
+        // Si ya hemos escrito todos los bytes completos, pero aún quedan bits sueltos, los marcamos en el siguiente byte
         else if (bitsRestantes > 0)
         {
             // CASO EXTREMO:
