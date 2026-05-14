@@ -73,12 +73,11 @@ int extraer_camino(const char *camino, char *inicial, char *final, char *tipo)
  */
 int buscar_entrada(const char *camino_parcial, unsigned int *p_inodo_dir, unsigned int *p_inodo, unsigned int *p_entrada, char reservar, unsigned char permisos)
 {
-    struct entrada entrada_leer;
     struct inodo inodo_dir;
     char inicial[TAMNOMBRE];
     char final[strlen(camino_parcial) + 1]; // +1 para seguridad
     char tipo;
-    int cant_entradas_inodo, num_entrada_inodo;
+    int num_entrada_inodo;
 
     struct superbloque SB;
     if (bread(posSB, &SB) == FALLO)
@@ -89,6 +88,10 @@ int buscar_entrada(const char *camino_parcial, unsigned int *p_inodo_dir, unsign
     // 1. Caso base: Terminamos la recursión si el camino es la raíz "/"
     if (strcmp(camino_parcial, "/") == 0)
     {
+        if (reservar == 1)
+        {
+            return ERROR_ENTRADA_YA_EXISTENTE; // No se puede crear la raíz
+        }
         *p_inodo = SB.posInodoRaiz; // Inodo 0
         *p_entrada = 0;
         return EXITO;
@@ -108,17 +111,29 @@ int buscar_entrada(const char *camino_parcial, unsigned int *p_inodo_dir, unsign
     if (leer_inodo(*p_inodo_dir, &inodo_dir) == FALLO)
         return FALLO;
 
-    // Verificamos que tenga permiso de lectura
-    if ((inodo_dir.permisos & 4) != 4)
+    // Verificamos que sea un directorio
+    if (inodo_dir.tipo != 'd')
     {
-        return ERROR_PERMISO_LECTURA;
+        return ERROR_NO_SE_PUEDE_CREAR_ENTRADA_EN_FICHERO;
+    }
+
+    // Verificamos permisos: lectura para buscar, escritura para reservar
+    if (reservar == 1)
+    {
+        if ((inodo_dir.permisos & 2) != 2)
+        {
+            return ERROR_PERMISO_ESCRITURA;
+        }
+    }
+    else
+    {
+        if ((inodo_dir.permisos & 4) != 4)
+        {
+            return ERROR_PERMISO_LECTURA;
+        }
     }
 
     // Inicializamos buffer de lectura para mayor eficiencia
-    // Buffer para leer varias entradas a la vez si quisiéramos optimizar,
-    // pero aquí leeremos una a una usando el offset lógico.
-    // Número de entradas actuales en el directorio:
-    cant_entradas_inodo = inodo_dir.tamEnBytesLog / sizeof(struct entrada);
     num_entrada_inodo = 0; // Contador de la entrada que estamos leyendo
 
     struct entrada buffer_entradas[BLOCKSIZE / sizeof(struct entrada)];
@@ -160,8 +175,7 @@ int buscar_entrada(const char *camino_parcial, unsigned int *p_inodo_dir, unsign
         // Si el camino final está vacío (final == "") O es solo "/", hemos llegado al objetivo
         if (strcmp(final, "") == 0 || strcmp(final, "/") == 0)
         {
-            // Si queríamos reservar y ya existe -> Error (salvo que sea un fichero y queramos sobrescribir,
-            // pero el enunciado suele pedir error si ya existe en mkdir).
+            // Si queríamos reservar y ya existe -> Error
             if (reservar == 1)
             {
                 return ERROR_ENTRADA_YA_EXISTENTE;
@@ -195,19 +209,8 @@ int buscar_entrada(const char *camino_parcial, unsigned int *p_inodo_dir, unsign
             }
 
             // Reservamos un nuevo inodo para el fichero/directorio nuevo
-            // NOTA: Para distinguir si es fichero o directorio usamos el 'tipo' extraído
-            // 'd' si había slash al final (extraer_camino lo detecta si el usuario pone /ruta/)
-            // o basándonos en el argumento 'permisos' o 'tipo' pasado (que no tenemos explícito en args).
-            // Usaremos el argumento 'permisos' del padre o una lógica estándar.
-            // Generalmente: 'permisos' viene dado.
-            // Asumiremos que el caller sabe qué permisos poner.
-            unsigned char tipo_inodo = 'f';
-            if (permisos == 6)
-                tipo_inodo = 'f'; // rw- -> fichero
-            else if (permisos == 7)
-                tipo_inodo = 'd'; // rwx -> directorio (heuristic)
-            // *Mejora*: Si tipo (extraído en extraer_camino) detectó que 'final' no estaba vacío, es dir,
-            // pero aquí final está vacío. Nos fiamos de los permisos pasados.
+            // Usamos el tipo extraído por extraer_camino: 'd' si acaba en '/', 'f' si no
+            unsigned char tipo_inodo = tipo;
 
             int ninodo_nuevo = reservar_inodo(tipo_inodo, permisos);
             if (ninodo_nuevo == FALLO)
@@ -476,8 +479,14 @@ int mi_write(const char *camino, const void *buf, unsigned int offset, unsigned 
         // fprintf(stderr, "[mi_write() -> Actualizamos la caché de escritura]\n");
     }
 
-    // 2. Escribir usando la función de nivel inferior (ficheros.c)
-    // mi_write_f verificará los permisos de escritura del inodo
+    // 2. Verificar permisos de escritura del inodo antes de escribir
+    struct inodo inodo;
+    if (leer_inodo(p_inodo, &inodo) == FALLO) return FALLO;
+    if ((inodo.permisos & 2) != 2) {
+        return ERROR_PERMISO_ESCRITURA;
+    }
+
+    // 3. Escribir usando la función de nivel inferior (ficheros.c)
     int bytes_escritos = mi_write_f(p_inodo, buf, offset, nbytes);
     
     return bytes_escritos;

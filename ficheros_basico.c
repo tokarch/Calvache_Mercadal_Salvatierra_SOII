@@ -1080,6 +1080,13 @@ int liberar_bloques_inodo(unsigned int primerBL, struct inodo *inodo)
         ultimoBL = inodo->tamEnBytesLog / BLOCKSIZE;
     }
 
+    if (primerBL > ultimoBL) {
+        #if DEBUGN6
+        fprintf(stderr, "[liberar_bloques_inodo()→ primer BL: %d, último BL: %d] (nada que liberar)\n", primerBL, ultimoBL);
+        #endif
+        return 0;
+    }
+
     #if DEBUGN6
     fprintf(stderr, "[liberar_bloques_inodo()→ primer BL: %d, último BL: %d]\n", primerBL, ultimoBL);
     #endif

@@ -1,13 +1,17 @@
 #include "directorios.h"
 
 int main(int argc, char **argv) {
-    if (argc != 3) {
-        fprintf(stderr, "Sintaxis: %s <disco> <ruta>\n", argv[0]);
+    int arg_idx = 1;
+
+    if (argc == 4 && strcmp(argv[1], "-l") == 0) {
+        arg_idx = 2;
+    } else if (argc != 3) {
+        fprintf(stderr, "Sintaxis: %s [-l] <disco> <ruta>\n", argv[0]);
         return FALLO;
     }
 
-    char *nombre_dispositivo = argv[1];
-    char *camino = argv[2];
+    char *nombre_dispositivo = argv[arg_idx];
+    char *camino = argv[arg_idx + 1];
     char buffer[TAMBUFFER];
     char tipo = 'd'; // Por defecto tratamos como directorio
 

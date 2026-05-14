@@ -40,10 +40,10 @@ endif
 # -------------------------------------------------------------------------
 ifneq ($(filter $(LEVEL), 7 8 9 10),)
     # NOTA: He añadido mi_touch.c que faltaba en tu versión anterior
-    SOURCES += directorios.c prueba_nivel7.c mi_mkdir.c mi_touch.c mi_chmod.c mi_ls.c mi_link.c mi_escribir.c mi_cat.c mi_stat.c mi_rm.c
+    SOURCES += directorios.c prueba_nivel7.c mi_mkdir.c mi_touch.c mi_chmod.c mi_ls.c mi_link.c mi_escribir.c mi_cat.c mi_stat.c mi_rm.c mi_rmdir.c
     LIBRARIES += directorios.o
     INCLUDES += directorios.h
-    PROGRAMS += prueba_nivel7 mi_mkdir mi_touch mi_chmod mi_ls mi_link mi_escribir mi_cat mi_stat mi_rm
+    PROGRAMS += prueba_nivel7 mi_mkdir mi_touch mi_chmod mi_ls mi_link mi_escribir mi_cat mi_stat mi_rm mi_rmdir
 endif
 
 # =========================================================================

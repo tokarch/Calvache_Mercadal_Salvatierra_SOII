@@ -369,7 +369,7 @@ int mi_truncar_f(unsigned int ninodo, unsigned int nbytes)
     // Verificar permisos escritura
     if ((inodo.permisos & 2) != 2)
     {
-        fprintf(stderr, RED "Error: Sin permisos de escritura en inodo %d\n" RESET, ninodo);
+        fprintf(stderr, RED "Error: No hay permisos de escritura en inodo %d\n" RESET, ninodo);
         return FALLO;
     }
 
