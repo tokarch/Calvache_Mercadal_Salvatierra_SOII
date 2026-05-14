@@ -532,12 +532,13 @@ int mi_read(const char *camino, void *buf, unsigned int offset, unsigned int nby
 /**
  * mi_link
  * Crea un enlace físico (hard link) de camino2 apuntando al inodo de camino1.
+ * No reserva inodos temporales: añade la entrada directamente al directorio padre.
  */
 int mi_link(const char *camino1, const char *camino2) {
     unsigned int p_inodo_dir1 = 0, p_inodo1 = 0, p_entrada1 = 0;
     unsigned int p_inodo_dir2 = 0, p_inodo2 = 0, p_entrada2 = 0;
     int error;
-    struct inodo inodo1;
+    struct inodo inodo1, inodo_dir2;
 
     // 1. Verificar existencia de camino1 (origen)
     error = buscar_entrada(camino1, &p_inodo_dir1, &p_inodo1, &p_entrada1, 0, 0);
@@ -553,29 +554,43 @@ int mi_link(const char *camino1, const char *camino2) {
         return ERROR_PERMISO_LECTURA;
     }
 
-    // 3. Crear entrada para camino2 (destino)
-    // Usamos buscar_entrada con reservar=1. Esto creará un inodo NUEVO automáticamente.
-    error = buscar_entrada(camino2, &p_inodo_dir2, &p_inodo2, &p_entrada2, 1, 6);
-    if (error < 0) return error; // Si ya existe, devolverá error
+    // 3. Verificar que camino2 NO existe (buscar_entrada con reservar=0)
+    //    Si existe, devolverá >= 0; si no, ERROR_NO_EXISTE_ENTRADA.
+    //    En este último caso, p_inodo_dir2 queda apuntando al directorio padre.
+    error = buscar_entrada(camino2, &p_inodo_dir2, &p_inodo2, &p_entrada2, 0, 0);
+    if (error >= 0) {
+        return ERROR_ENTRADA_YA_EXISTENTE;
+    }
+    if (error != ERROR_NO_EXISTE_ENTRADA) {
+        return error; // Error real (camino incorrecto, dir intermedio no existe, etc.)
+    }
 
-    // 4. "Truco" del enlace físico:
-    // buscar_entrada ha creado una entrada en el directorio padre de camino2 que apunta a p_inodo2 (nuevo).
-    // Queremos que apunte a p_inodo1.
-    
-    struct entrada entrada;
-    // Leemos la entrada que acabamos de crear en el directorio padre (p_inodo_dir2)
-    if (mi_read_f(p_inodo_dir2, &entrada, p_entrada2 * sizeof(struct entrada), sizeof(struct entrada)) < 0) return FALLO;
+    // 4. Verificar permisos de escritura en el directorio padre de camino2
+    if (leer_inodo(p_inodo_dir2, &inodo_dir2) == FALLO) return FALLO;
+    if ((inodo_dir2.permisos & 2) != 2) {
+        return ERROR_PERMISO_ESCRITURA;
+    }
 
-    // Modificamos el puntero al inodo
-    entrada.ninodo = p_inodo1;
+    // 5. Extraer el nombre del fichero (último componente de camino2)
+    char nombre_entrada[TAMNOMBRE];
+    const char *ultima_barra = strrchr(camino2, '/');
+    if (ultima_barra == NULL) {
+        return ERROR_CAMINO_INCORRECTO;
+    }
+    strncpy(nombre_entrada, ultima_barra + 1, TAMNOMBRE - 1);
+    nombre_entrada[TAMNOMBRE - 1] = '\0';
 
-    // Escribimos la entrada modificada
-    if (mi_write_f(p_inodo_dir2, &entrada, p_entrada2 * sizeof(struct entrada), sizeof(struct entrada)) < 0) return FALLO;
+    // 6. Crear la entrada apuntando directamente al inodo origen (sin reservar inodo nuevo)
+    struct entrada nueva_entrada;
+    memset(nueva_entrada.nombre, 0, TAMNOMBRE);
+    strncpy(nueva_entrada.nombre, nombre_entrada, TAMNOMBRE - 1);
+    nueva_entrada.ninodo = p_inodo1;
 
-    // 5. Liberamos el inodo2 que se creó innecesariamente
-    if (liberar_inodo(p_inodo2) == FALLO) return FALLO;
+    if (mi_write_f(p_inodo_dir2, &nueva_entrada, inodo_dir2.tamEnBytesLog, sizeof(struct entrada)) < 0) {
+        return FALLO;
+    }
 
-    // 6. Actualizamos el inodo1 (el original)
+    // 7. Actualizar nlinks del inodo origen
     inodo1.nlinks++;
     inodo1.ctime = time(NULL);
     if (escribir_inodo(p_inodo1, &inodo1) == FALLO) return FALLO;

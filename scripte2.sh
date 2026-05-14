@@ -40,14 +40,14 @@ echo -e "\x1B[38;2;17;245;120m##################################################
 echo -e "\x1B[38;2;17;245;120m$ ./mi_chmod disco 1 /dir1/dir11/ #cambio a permiso ejecución\x1b[0m"
 ./mi_chmod disco 1 /dir1/dir11/  
 echo
-echo -e "\x1B[38;2;17;245;120m$ ./mi_touch disco 6 /dir1/dir11/fic111 #Error: Permiso denegado de lectura.\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_touch disco 6 /dir1/dir11/fic111 #Error: Permiso denegado de escritura.\x1b[0m"
 ./mi_touch disco 6 /dir1/dir11/fic111  
 echo
 echo -e "\x1B[38;2;17;245;120m######################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m$ ./mi_chmod disco 2 /dir1/dir11/ #cambio a permiso escritura\x1b[0m"
 ./mi_chmod disco 2 /dir1/dir11/  
 echo
-echo -e "\x1B[38;2;17;245;120m$ ./mi_touch disco 6 /dir1/dir11/fic111 #Error: Permiso denegado de lectura.\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_touch disco 6 /dir1/dir11/fic111 #Crea el fichero (solo necesita permiso escritura)\x1b[0m"
 ./mi_touch disco 6 /dir1/dir11/fic111  
 echo
 echo -e "\x1B[38;2;17;245;120m######################################################################\x1b[0m"
@@ -110,7 +110,7 @@ echo -e "\x1B[38;2;17;245;120m$ ./leer_sf disco\x1b[0m"
 echo
 echo -e "\x1B[38;2;17;245;120m######################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m$ ./mi_escribir  disco /dir1/dir11/fic111 \"$(cat texto2.txt)\" 0 #⊂ BL 0 ∈ D0\x1b[0m"
-echo -e "\x1B[38;2;17;245;120m#reservaremos 5 bloques de datos (3 escritos completos y 2 parciales)\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m#reservaremos 4 bloques de datos (3751 bytes / 1024 = 3.66 -> 4 bloques)\x1b[0m"
 ./mi_escribir  disco /dir1/dir11/fic111 "$(cat texto2.txt)" 0
 echo
 echo -e "\x1B[38;2;17;245;120m$ ./mi_ls -l  disco /dir1/dir11/fic111 #eliminar comando si no se ha implementado mi_ls para ficheros\x1b[0m"
@@ -180,7 +180,7 @@ echo
 echo -e "\x1B[38;2;17;245;120m$ ./mi_stat disco /dir1/dir11/fic112 \x1b[0m"
 ./mi_stat disco /dir1/dir11/fic112 
 echo
-echo -e "\x1B[38;2;17;245;120m$ ./mi_cat /dir1/dir11/fic112 \x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_cat disco /dir1/dir11/fic112 \x1b[0m"
 ./mi_cat disco /dir1/dir11/fic112 
 echo
 echo
