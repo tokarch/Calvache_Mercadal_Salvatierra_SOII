@@ -131,19 +131,17 @@ int buscar_entrada(const char *camino_parcial, unsigned int *p_inodo_dir, unsign
         return ERROR_NO_SE_PUEDE_CREAR_ENTRADA_EN_FICHERO;
     }
 
-    // Verificamos permisos: lectura para buscar, escritura para reservar
+    // Verificamos permisos: siempre necesitamos lectura para buscar entradas
+    if ((inodo_dir.permisos & 4) != 4)
+    {
+        return ERROR_PERMISO_LECTURA;
+    }
+    // Si queremos reservar, además necesitamos escritura en el directorio
     if (reservar == 1)
     {
         if ((inodo_dir.permisos & 2) != 2)
         {
             return ERROR_PERMISO_ESCRITURA;
-        }
-    }
-    else
-    {
-        if ((inodo_dir.permisos & 4) != 4)
-        {
-            return ERROR_PERMISO_LECTURA;
         }
     }
 
