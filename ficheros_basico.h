@@ -9,11 +9,13 @@
 #include <time.h>   // Para time_t
 
 /*
-AUTORES
-=======
-* Calvache Vidal, Antonio
-* Mercadal Forteza, Lluís
-* Salvatierra Romero, Diego Jeroni
+PROGRAMADO, REVISADO Y VERIFICADO POR
+=====================================
+Calvache Vidal, Antonio
+
+VERIFICADO FINALMENTE Y COMENTADO POR
+=====================================
+Mercadal Forteza, Lluís
 */
 
 // Constantes de diseño

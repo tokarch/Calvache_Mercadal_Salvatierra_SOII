@@ -1,13 +1,24 @@
-# Test de casos limite de directorio (Nivel 8)
+#!/bin/bash
+# =============================================================================
+# test8.sh — Test de Nivel 8: Casos límite de directorio
+#
+# Verifica: detección de directorios existentes, borrado de directorios no
+# vacíos, mi_cat sobre directorios, paths profundos (8 niveles), nombres de
+# fichero de 60 caracteres (límite TAMNOMBRE) y listado de la raíz.
+# Uso: ./test8.sh
+# =============================================================================
+
 set -e
 
 clear
 make clean
 make LEVEL=8
 
+# --- Inicialización del sistema de ficheros ---
 echo "=== Inicializando disco ==="
 ./mi_mkfs disco 100000
 
+# --- Test: creación de directorios y casos de error ---
 echo "=== Creando /dir1/ ==="
 ./mi_mkdir disco 7 /dir1/
 
@@ -32,6 +43,7 @@ if ./mi_cat disco /dir1/ 2>/dev/null; then
     exit 1
 fi
 
+# --- Test: paths profundos y nombres largos ---
 echo "=== Test: path profundo (8 niveles) ==="
 ./mi_mkdir disco 7 /a/
 ./mi_mkdir disco 7 /a/b/
@@ -46,6 +58,7 @@ echo "=== Test: path profundo (8 niveles) ==="
 echo "=== Test: nombre de 60 caracteres (limite TAMNOMBRE) ==="
 ./mi_touch disco 6 /dir1/123456789012345678901234567890123456789012345678901234567890
 
+# --- Test: listado de la raíz ---
 echo "=== Test: listar raiz ==="
 ./mi_ls disco /
 

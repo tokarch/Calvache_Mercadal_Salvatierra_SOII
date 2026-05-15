@@ -1,6 +1,16 @@
 // directorios.h
 // Descripción: Estructuras y funciones para la gestión de directorios (Nivel 10)
 
+/*
+PROGRAMADO, REVISADO Y VERIFICADO POR
+=====================================
+Calvache Vidal, Antonio
+
+VERIFICADO FINALMENTE Y COMENTADO POR
+=====================================
+Mercadal Forteza, Lluís
+*/
+
 #ifndef DIRECTORIOS_H
 #define DIRECTORIOS_H
 

@@ -1,13 +1,24 @@
-# Adelaida
-# test5b.sh
+#!/bin/bash
+# =============================================================================
+# test5b.sh — Test de Nivel 5: Escritura con texto largo y verificación de permisos
+#
+# Verifica: escritura de texto largo en múltiples inodos, lectura a fichero
+# externo, y denegación de acceso al cambiar permisos a 0.
+# Uso: ./test5b.sh
+# =============================================================================
+
 set -e
 clear
 make clean
 make LEVEL=5
+
+# --- Inicialización del sistema de ficheros ---
 echo -e "\x1B[38;2;17;245;120m################################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m$ ./mi_mkfs disco 100000\x1b[0m"
 ./mi_mkfs disco 100000
 echo
+
+# --- Test: escritura de texto largo en inodos diferentes ---
 echo -e "\x1B[38;2;17;245;120m################################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m$ ./escribir disco "$(cat texto2.txt)" 1\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m#escribimos el texto contenido en text2.txt en los offsets  9000, 209000, 30725000, \x1b[0m"
@@ -31,6 +42,8 @@ echo -e "\x1B[38;2;17;245;120m#No hay que mostrar basura\x1b[0m"
 cat ext4.txt
 echo
 echo
+
+# --- Test: denegación de lectura con permisos 0 ---
 echo -e "\x1B[38;2;17;245;120m################################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m$ ./permitir\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m#mostramos sintaxis de permitir\x1b[0m"
@@ -48,5 +61,6 @@ if ./leer disco 2; then
     exit 1
 fi
 
+# --- Validación final ---
 [ -s ext4.txt ] || { echo "FALLO: ext4.txt esta vacio o no existe"; exit 1; }
 echo "OK: test5b.sh completado"

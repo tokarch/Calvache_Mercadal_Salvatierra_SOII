@@ -1,5 +1,13 @@
-# Adelaida
-# scripte2.sh
+#!/bin/bash
+# =============================================================================
+# scripte2.sh — Test de Nivel 6-10: Stress test de directorios, enlaces,
+# permisos, escritura/lectura y borrado
+#
+# Verifica: creación de jerarquías de directorios, control de permisos con
+# mi_chmod, escritura y lectura de ficheros, enlaces duros (mi_link), borrado
+# de ficheros y directorios, y expansión de directorios a múltiples bloques.
+# Uso: ./scripte2.sh
+# =============================================================================
 
 clear
 make clean
@@ -11,6 +19,8 @@ echo
 echo -e "\x1B[38;2;17;245;120m$ ./leer_sf disco\x1b[0m"
 ./leer_sf disco
 echo
+
+# --- Nivel 8: Creación de directorios, permisos, stat y listado ---
 echo -e "\x1B[38;2;17;245;120m######################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120mNIVEL 8: CREAR DIRECTORIOS Y FICHEROS, PERMISOS, STAT, LISTAR\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m######################################################################\x1b[0m"
@@ -102,6 +112,8 @@ echo -e "\x1B[38;2;17;245;120m$ ./mi_mkdir disco 9 /dir2/ #Error: modo inválido
 ./mi_mkdir disco 9 /dir2/
 echo
 echo
+
+# --- Nivel 9: Escritura y lectura de ficheros ---
 echo -e "\x1B[38;2;17;245;120m######################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120mNIVEL 9: LEER Y ESCRIBIR\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m######################################################################\x1b[0m"
@@ -184,6 +196,8 @@ echo -e "\x1B[38;2;17;245;120m$ ./mi_cat disco /dir1/dir11/fic112 \x1b[0m"
 ./mi_cat disco /dir1/dir11/fic112 
 echo
 echo
+
+# --- Nivel 10: Enlaces duros y borrado ---
 echo -e "\x1B[38;2;17;245;120m######################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120mNIVEL 10: ENLACES Y BORRADO\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m######################################################################\x1b[0m"
@@ -290,6 +304,8 @@ echo "                  /     \\"
 echo "              fic111  fic112"
 echo -e "\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m######################################################################\x1b[0m"
+
+# --- Test: expansión de directorios a múltiples bloques ---
 echo -e "\x1B[38;2;17;245;120mCreamos más directorios de los que caben en 1 bloque\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m######################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m$ ./mi_mkdir disco 6 /dir3/\x1b[0m"

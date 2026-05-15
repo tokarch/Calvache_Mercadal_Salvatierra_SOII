@@ -1,5 +1,19 @@
 // prueba_nivel7.c
 // Descripción: Programa para testear extraer_camino y buscar_entrada.
+// Propósito: Test harness de integración del Nivel 7 (resolución de caminos
+//   y gestión de entradas de directorio). Comprueba creación, búsqueda y
+//   detección de duplicados sobre un dispositivo virtual montado.
+// Uso: ./prueba_nivel7 <nombre_dispositivo>
+
+/*
+PROGRAMADO, REVISADO Y VERIFICADO POR
+=====================================
+Calvache Vidal, Antonio
+
+VERIFICADO FINALMENTE Y COMENTADO POR
+=====================================
+Mercadal Forteza, Lluís
+*/
 
 #include "directorios.h"
 
@@ -14,7 +28,9 @@ int main(int argc, char **argv)
     if (bmount(argv[1]) == FALLO)
         return FALLO;
 
-    // 1. Test de creación de directorios
+    /* 1. Test de creación de directorios y ficheros.
+     * buscar_entrada con reservar=1 crea la entrada si no existe.
+     * El último argumento son los permisos en octal (7=rwx, 6=rw-). */
     printf("\n--- TEST CREACION ---\n");
     unsigned int p_inodo_dir = 0; // Empezamos en la raíz
     unsigned int p_inodo = 0;
@@ -47,7 +63,9 @@ int main(int argc, char **argv)
     else
         printf("OK (Inodo: %d)\n", p_inodo);
 
-    // 2. Test de búsqueda
+    /* 2. Test de búsqueda de entradas existentes y no existentes.
+     * buscar_entrada con reservar=0 solo consulta; devuelve el inodo
+     * y el índice de entrada si lo encuentra, o un código de error negativo. */
     printf("\n--- TEST BUSQUEDA ---\n");
 
     // Buscar /docs/trabajo/informe.txt
@@ -68,7 +86,9 @@ int main(int argc, char **argv)
     else
         printf("ERROR (Encontrado algo que no deberia existir)\n");
 
-    // 3. Test crear existente
+    /* 3. Test de detección de entrada duplicada.
+     * Si buscar_entrada con reservar=1 encuentra la entrada previa,
+     * debe devolver ERROR_ENTRADA_YA_EXISTENTE. */
     p_inodo_dir = 0;
     printf("Intentando crear /docs (ya existe) ... ");
     error = buscar_entrada("/docs", &p_inodo_dir, &p_inodo, &p_entrada, 1, 7);

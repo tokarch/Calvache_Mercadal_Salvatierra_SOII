@@ -1,6 +1,20 @@
 // directorios.c
 // Descripción: Implementación de la capa de directorios (Nivel 10).
 
+/*
+PROGRAMADO, REVISADO Y VERIFICADO POR
+=====================================
+Calvache Vidal, Antonio
+
+REVISADO (SEGUNDA PASADA) POR
+=============================
+Salvatierra Romero, Diego Jeroni
+
+VERIFICADO FINALMENTE Y COMENTADO POR
+=====================================
+Mercadal Forteza, Lluís
+*/
+
 #include "directorios.h"
 #include <string.h>
 #include <time.h>
@@ -254,10 +268,10 @@ void mostrar_error_buscar_entrada(int error)
         fprintf(stderr, "Error: Camino incorrecto.\n");
         break;
     case ERROR_PERMISO_LECTURA:
-        fprintf(stderr, "Error: Permiso denegado de lectura.\n");
+        fprintf(stderr, "Error: Permiso denegado de lectura..\n");
         break;
     case ERROR_NO_EXISTE_ENTRADA:
-        fprintf(stderr, "Error: No existe el archivo o directorio.\n");
+        fprintf(stderr, "Error: No existe el archivo o el directorio..\n");
         break;
     case ERROR_NO_EXISTE_DIRECTORIO_INTERMEDIO:
         fprintf(stderr, "Error: No existe algún directorio intermedio.\n");
@@ -266,10 +280,10 @@ void mostrar_error_buscar_entrada(int error)
         fprintf(stderr, "Error: Permiso denegado de escritura.\n");
         break;
     case ERROR_ENTRADA_YA_EXISTENTE:
-        fprintf(stderr, "Error: El archivo ya existe.\n");
+        fprintf(stderr, "Error: El archivo ya existe..\n");
         break;
     case ERROR_NO_SE_PUEDE_CREAR_ENTRADA_EN_FICHERO:
-        fprintf(stderr, "Error: No es un directorio.\n");
+        fprintf(stderr, "Error: No es un directorio..\n");
         break;
     }
 }

@@ -4,11 +4,17 @@
 #include "ficheros.h"
 
 /*
-AUTORES
-=======
-* Calvache Vidal, Antonio
-* Mercadal Forteza, Lluís
-* Salvatierra Romero, Diego Jeroni
+PROGRAMADO, REVISADO Y VERIFICADO POR
+=====================================
+Calvache Vidal, Antonio
+
+REVISADO (SEGUNDA PASADA) POR
+=============================
+Salvatierra Romero, Diego Jeroni
+
+VERIFICADO FINALMENTE Y COMENTADO POR
+=====================================
+Mercadal Forteza, Lluís
 */
 
 // ==============================================================================
@@ -39,16 +45,20 @@ int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offse
     unsigned int nbfisico;
     unsigned char buf_bloque[BLOCKSIZE];
     int bytes_escritos = 0;
+    int _ret = FALLO;
+
+    // --- INICIO SECCIÓN CRÍTICA: inodo + reserva bloques ---
+    mi_waitSem();
 
     // 1. Leemos el inodo para verificar permisos y actualizar metadatos
     if (leer_inodo(ninodo, &inodo) == FALLO)
-        return FALLO;
+        goto _fin;
 
     // Verificamos permisos de escritura (bit 'w' -> 2)
     if ((inodo.permisos & 2) != 2)
     {
         fprintf(stderr,  RED "Error: No hay permisos de escritura en inodo %d\n" RESET, ninodo);
-        return FALLO;
+        goto _fin;
     }
 
     // 2. Calculamos bloques afectados
@@ -69,18 +79,18 @@ int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offse
         // Obtenemos el bloque físico (reservando si no existe porque vamos a escribir)
         nbfisico = traducir_bloque_inodo(ninodo, primerBL, 1);
         if (nbfisico == -1)
-            return FALLO;
+            goto _fin;
 
         // Leemos el bloque físico (read-modify-write) para preservar datos no sobreescritos
         if (bread(nbfisico, buf_bloque) == FALLO)
-            return FALLO;
+            goto _fin;
 
         // Copiamos los datos del buffer usuario al buffer de bloque en la posición correcta
         memcpy(buf_bloque + desp1, buf_original, nbytes);
 
         // Escribimos el bloque modificado en disco
         if (bwrite(nbfisico, buf_bloque) == FALLO)
-            return FALLO;
+            goto _fin;
 
         bytes_escritos = nbytes;
     }
@@ -90,16 +100,16 @@ int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offse
         // --- FASE 1: Primer bloque (parcial) ---
         nbfisico = traducir_bloque_inodo(ninodo, primerBL, 1);
         if (nbfisico == -1)
-            return FALLO;
+            goto _fin;
 
         if (bread(nbfisico, buf_bloque) == FALLO)
-            return FALLO;
+            goto _fin;
 
         // Escribimos desde desp1 hasta el final del bloque
         memcpy(buf_bloque + desp1, buf_original, BLOCKSIZE - desp1);
 
         if (bwrite(nbfisico, buf_bloque) == FALLO)
-            return FALLO;
+            goto _fin;
 
         bytes_escritos += BLOCKSIZE - desp1;
 
@@ -108,12 +118,12 @@ int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offse
         {
             nbfisico = traducir_bloque_inodo(ninodo, bl, 1);
             if (nbfisico == -1)
-                return FALLO;
+                goto _fin;
 
             // Optimización. Como sobreescribimos el bloque entero (1024 bytes), 
             // no hace falta hacer bread() previo. Volcamos directamente desde el buffer original.
             if (bwrite(nbfisico, buf_original + (BLOCKSIZE - desp1) + (bl - primerBL - 1) * BLOCKSIZE) == FALLO)
-                return FALLO;
+                goto _fin;
 
             bytes_escritos += BLOCKSIZE;
         }
@@ -121,16 +131,16 @@ int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offse
         // --- FASE 3: Último bloque (parcial) ---
         nbfisico = traducir_bloque_inodo(ninodo, ultimoBL, 1);
         if (nbfisico == -1)
-            return FALLO;
+            goto _fin;
 
         if (bread(nbfisico, buf_bloque) == FALLO)
-            return FALLO;
+            goto _fin;
 
         // Escribimos desde el principio del bloque hasta desp2
         memcpy(buf_bloque, buf_original + (nbytes - (desp2 + 1)), desp2 + 1);
 
         if (bwrite(nbfisico, buf_bloque) == FALLO)
-            return FALLO;
+            goto _fin;
 
         bytes_escritos += desp2 + 1;
     }
@@ -138,7 +148,7 @@ int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offse
     // 5. Actualizar metadatos del inodo
     // Si hemos escrito más allá del EOF actual, actualizamos el tamaño
     if (leer_inodo(ninodo, &inodo) == FALLO)
-        return FALLO; // Releer inodo actualizado por traducir_bloque
+        goto _fin; // Releer inodo actualizado por traducir_bloque
 
     if (offset + nbytes > inodo.tamEnBytesLog)
     {
@@ -148,9 +158,14 @@ int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offse
     inodo.mtime = time(NULL);
 
     if (escribir_inodo(ninodo, &inodo) == FALLO)
-        return FALLO;
+        goto _fin;
 
-    return bytes_escritos;
+    _ret = bytes_escritos;
+
+_fin:
+    mi_signalSem();
+    // --- FIN SECCIÓN CRÍTICA ---
+    return _ret;
 }
 
 /**
@@ -176,21 +191,26 @@ int mi_read_f(unsigned int ninodo, void *buf_original, unsigned int offset, unsi
     unsigned int nbfisico;
     unsigned char buf_bloque[BLOCKSIZE];
     int bytes_leidos = 0;
+    int _ret = FALLO;
+
+    // --- INICIO SECCIÓN CRÍTICA: inodo ---
+    mi_waitSem();
 
     if (leer_inodo(ninodo, &inodo) == FALLO)
-        return FALLO;
+        goto _fin;
 
     // Verificar permisos de lectura (bit 'r' -> 4)
     if ((inodo.permisos & 4) != 4)
     {
         fprintf(stderr, RED "Error: No hay permisos de lectura en inodo %d\n" RESET, ninodo);
-        return FALLO;
+        goto _fin;
     }
 
     // Comprobar que no intentamos leer más allá del EOF
     if (offset >= inodo.tamEnBytesLog)
     {
-        return 0; // Nada que leer
+        _ret = 0; // Nada que leer
+        goto _fin;
     }
     if (offset + nbytes >= inodo.tamEnBytesLog)
     {
@@ -211,7 +231,7 @@ int mi_read_f(unsigned int ninodo, void *buf_original, unsigned int offset, unsi
         if (nbfisico != -1)
         {
             if (bread(nbfisico, buf_bloque) == FALLO)
-                return FALLO;
+                goto _fin;
             memcpy(buf_original, buf_bloque + desp1, nbytes);
         }
         else
@@ -225,11 +245,11 @@ int mi_read_f(unsigned int ninodo, void *buf_original, unsigned int offset, unsi
     else
     {
         // --- FASE 1: Primer bloque ---
-        nbfisico = traducir_bloque_inodo(ninodo, primerBL, 0);
+        nbfisico = traducir_bloque_inodo(ninodo, primerBL, 0); // Solo consultar
         if (nbfisico != -1)
         {
             if (bread(nbfisico, buf_bloque) == FALLO)
-                return FALLO;
+                goto _fin;
             memcpy(buf_original, buf_bloque + desp1, BLOCKSIZE - desp1);
         }
         else
@@ -245,7 +265,7 @@ int mi_read_f(unsigned int ninodo, void *buf_original, unsigned int offset, unsi
             if (nbfisico != -1)
             {
                 if (bread(nbfisico, buf_bloque) == FALLO)
-                    return FALLO;
+                    goto _fin;
                 memcpy(buf_original + (BLOCKSIZE - desp1) + (bl - primerBL - 1) * BLOCKSIZE, buf_bloque, BLOCKSIZE);
             }
             else
@@ -260,7 +280,7 @@ int mi_read_f(unsigned int ninodo, void *buf_original, unsigned int offset, unsi
         if (nbfisico != -1)
         {
             if (bread(nbfisico, buf_bloque) == FALLO)
-                return FALLO;
+                goto _fin;
             memcpy(buf_original + (nbytes - (desp2 + 1)), buf_bloque, desp2 + 1);
         }
         else
@@ -272,12 +292,17 @@ int mi_read_f(unsigned int ninodo, void *buf_original, unsigned int offset, unsi
 
     // Actualizar atime
     if (leer_inodo(ninodo, &inodo) == FALLO)
-        return FALLO;
+        goto _fin;
     inodo.atime = time(NULL);
     if (escribir_inodo(ninodo, &inodo) == FALLO)
-        return FALLO;
+        goto _fin;
 
-    return bytes_leidos;
+    _ret = bytes_leidos;
+
+_fin:
+    mi_signalSem();
+    // --- FIN SECCIÓN CRÍTICA ---
+    return _ret;
 }
 
 /**
@@ -362,22 +387,26 @@ int mi_truncar_f(unsigned int ninodo, unsigned int nbytes)
     struct inodo inodo;
     int primerBL;
     int liberados;
+    int _ret = FALLO;
+
+    // --- INICIO SECCIÓN CRÍTICA: inodo + liberación bloques ---
+    mi_waitSem();
 
     if (leer_inodo(ninodo, &inodo) == FALLO)
-        return FALLO;
+        goto _fin;
 
     // Verificar permisos escritura
     if ((inodo.permisos & 2) != 2)
     {
         fprintf(stderr, RED "Error: No hay permisos de escritura en inodo %d\n" RESET, ninodo);
-        return FALLO;
+        goto _fin;
     }
 
     // No se puede truncar más allá del tamaño actual
     if (nbytes > inodo.tamEnBytesLog)
     {
         fprintf(stderr, RED "Error: No se puede truncar más allá del EOF\n" RESET);
-        return FALLO;
+        goto _fin;
     }
 
     // Calcular el primer bloque lógico a liberar
@@ -400,7 +429,12 @@ int mi_truncar_f(unsigned int ninodo, unsigned int nbytes)
     inodo.numBloquesOcupados -= liberados;
 
     if (escribir_inodo(ninodo, &inodo) == FALLO)
-        return FALLO;
+        goto _fin;
 
-    return liberados;
+    _ret = liberados;
+
+_fin:
+    mi_signalSem();
+    // --- FIN SECCIÓN CRÍTICA ---
+    return _ret;
 }

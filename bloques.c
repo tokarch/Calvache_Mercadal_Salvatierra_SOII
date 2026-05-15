@@ -4,16 +4,24 @@
 #include "bloques.h"
 
 /*
-AUTORES
-=======
-* Calvache Vidal, Antonio
-* Mercadal Forteza, Lluís
-* Salvatierra Romero, Diego Jeroni
+PROGRAMADO, REVISADO Y VERIFICADO POR
+=====================================
+Calvache Vidal, Antonio
+
+REVISADO (SEGUNDA PASADA) POR
+=============================
+Salvatierra Romero, Diego Jeroni
+
+VERIFICADO FINALMENTE Y COMENTADO POR
+=====================================
+Mercadal Forteza, Lluís
 */
 
 // Declaramos el descriptor como 'static' para que actúe como una variable 
 // global estática, de forma que SOLO pueda ser accedida desde dentro de bloques.c.
 static int descriptor = 0;
+static sem_t *mutex;       // El semáforo global
+static unsigned int inside_sc = 0; // Contador para reentrada
 
 /**
  * bmount
@@ -28,6 +36,13 @@ static int descriptor = 0;
  */
 int bmount(const char *camino)
 {
+    // Nivel 12: Si el descriptor ya está abierto (heredado del padre tras fork),
+    // lo cerramos para que el proceso hijo tenga su propio descriptor independiente,
+    // evitando compartir el puntero lseek con el padre u otros hijos.
+    if (descriptor > 0) {
+        close(descriptor);
+    }
+
     // Configuración de permisos: rw-rw-rw- (0666)
     // Usamos umask(0000) para evitar que el sistema operativo (o entornos como WSL) 
     // restrinja o modifique los permisos que solicitamos por defecto.
@@ -43,6 +58,15 @@ int bmount(const char *camino)
     {
         perror(RED "Error en bmount al abrir el fichero" RESET);
         return FALLO;
+    }
+
+    // NIVEL 11: Inicializar semáforo
+    if (!mutex) { // Solo si no está inicializado ya
+        mutex = initSem();
+        if (mutex == SEM_FAILED) {
+            close(descriptor);
+            return FALLO;
+        }
     }
 
     return descriptor;
@@ -61,8 +85,15 @@ int bmount(const char *camino)
  */
 int bumount()
 {
+    descriptor = close(descriptor);
+
+    // NIVEL 11: Eliminar semáforo (solo el padre debería llamar a deleteSem,
+    // pero en la práctica cada proceso cierra su referencia; el semáforo real
+    // se destruye cuando el último proceso lo cierra).
+    deleteSem(mutex);
+
     // Llamamos a close() para liberar el descriptor del fichero.
-    if (close(descriptor) == -1)
+    if (descriptor == -1)
     {
         perror(RED "Error en bumount al cerrar el descriptor" RESET);
         return FALLO;
@@ -147,4 +178,19 @@ int bread(unsigned int nbloque, void *buf)
 
     // Devolvemos la cantidad de bytes leídos
     return (int)bytes_leidos;
+}
+
+// --- FUNCIONES DE EXCLUSIÓN MUTUA (Nivel 11) ---
+void mi_waitSem() {
+    if (!inside_sc) { // Si no estamos ya dentro, ocupamos el semáforo
+        waitSem(mutex);
+    }
+    inside_sc++;
+}
+
+void mi_signalSem() {
+    inside_sc--;
+    if (!inside_sc) { // Si salimos de la última función crítica, liberamos
+        signalSem(mutex);
+    }
 }

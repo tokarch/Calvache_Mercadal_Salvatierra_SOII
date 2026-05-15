@@ -1,9 +1,18 @@
-# Adelaida
-# test6b.sh #truncados parciales texto 1 solo bloque
+#!/bin/bash
+# =============================================================================
+# test6b.sh — Test de Nivel 6: Truncados parciales de texto de un solo bloque
+#
+# Verifica: escritura de un texto corto y truncados parciales progresivos
+# comprobando la liberación correcta de bloques de datos e indirectos.
+# Uso: ./test6b.sh
+# =============================================================================
+
 set -e
 clear
 make clean
 make LEVEL=6
+
+# --- Inicialización del sistema de ficheros ---
 echo -e "\x1B[38;2;17;245;120m################################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m$ ./mi_mkfs disco 100000\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m#inicializamos el sistema de ficheros con 100.000 bloques\x1b[0m"
@@ -12,6 +21,8 @@ echo
 echo -e "\x1B[38;2;17;245;120m$ ./leer_sf disco\x1b[0m"
 ./leer_sf disco
 echo
+
+# --- Test: escritura de texto corto ---
 echo -e "\x1B[38;2;17;245;120m################################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m$ ./escribir disco "123456789" 0\x1b[0m"
 ./escribir disco "123456789" 0
@@ -19,6 +30,8 @@ echo
 echo -e "\x1B[38;2;17;245;120m$ ./leer_sf disco\x1b[0m"
 ./leer_sf disco
 echo
+
+# --- Test: truncados parciales progresivos ---
 echo -e "\x1B[38;2;17;245;120m################################################################################\x1b[0m"
 echo -e "\x1B[38;2;17;245;120m$ time ./truncar disco 1 409605001\x1b[0m"
 time ./truncar disco 1 409605001

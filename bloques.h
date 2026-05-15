@@ -2,11 +2,13 @@
 // Descripción: Definiciones globales, librerías y prototipos de funciones de bajo nivel.
 
 /*
-AUTORES
-=======
-* Calvache Vidal, Antonio
-* Mercadal Forteza, Lluís
-* Salvatierra Romero, Diego Jeroni
+PROGRAMADO, REVISADO Y VERIFICADO POR
+=====================================
+Calvache Vidal, Antonio
+
+VERIFICADO FINALMENTE Y COMENTADO POR
+=====================================
+Mercadal Forteza, Lluís
 */
 
 #ifndef BLOQUES_H
@@ -20,6 +22,8 @@ AUTORES
 #include <fcntl.h>     // O_RDWR, O_CREAT, O_TRUNC
 #include <errno.h>     // Gestión de la variable errno
 #include <string.h>    // strerror, memset
+
+#include "semaforo_mutex_posix.h"
 
 // Constantes del sistema
 #define BLOCKSIZE 1024 // Tamaño del bloque en bytes
@@ -49,5 +53,9 @@ int bmount(const char *camino);
 int bumount();
 int bwrite(unsigned int nbloque, const void *buf);
 int bread(unsigned int nbloque, void *buf);
+
+// Nuevos prototipos Nivel 11
+void mi_waitSem();
+void mi_signalSem();
 
 #endif // BLOQUES_H

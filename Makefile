@@ -12,23 +12,23 @@ LDFLAGS=-pthread
 # =========================================================================
 # CONFIGURACIÓN DE NIVELES
 # Uso: make LEVEL=8  (Compila hasta el nivel 8)
-# Si no se especifica LEVEL, compila todo por defecto (nivel 10)
+# Si no se especifica LEVEL, compila todo por defecto (nivel 13)
 # =========================================================================
-LEVEL ?= 10
+LEVEL ?= 13
 
 # -------------------------------------------------------------------------
 # NIVEL 1 - 3: Bases del sistema (Metadatos y Bloques)
 # Aquí incluimos los comandos base para crear el disco y leer sus estructuras.
 # -------------------------------------------------------------------------
-SOURCES = mi_mkfs.c bloques.c ficheros_basico.c leer_sf.c
-LIBRARIES = bloques.o ficheros_basico.o
+SOURCES = mi_mkfs.c bloques.c ficheros_basico.c leer_sf.c semaforo_mutex_posix.c
+LIBRARIES = bloques.o ficheros_basico.o semaforo_mutex_posix.o
 INCLUDES = bloques.h ficheros_basico.h
 PROGRAMS = mi_mkfs leer_sf
 
 # -------------------------------------------------------------------------
 # NIVEL 4 - 6: Ficheros y Punteros
 # -------------------------------------------------------------------------
-ifneq ($(filter $(LEVEL), 4 5 6 7 8 9 10),)
+ifneq ($(filter $(LEVEL), 4 5 6 7 8 9 10 11 12 13),)
     SOURCES += ficheros.c escribir.c leer.c truncar.c permitir.c
     LIBRARIES += ficheros.o
     INCLUDES += ficheros.h
@@ -38,12 +38,20 @@ endif
 # -------------------------------------------------------------------------
 # NIVEL 7 - 10: Directorios, Path I/O y Links
 # -------------------------------------------------------------------------
-ifneq ($(filter $(LEVEL), 7 8 9 10),)
-    # NOTA: He añadido mi_touch.c que faltaba en tu versión anterior
+ifneq ($(filter $(LEVEL), 7 8 9 10 11 12 13),)
     SOURCES += directorios.c prueba_nivel7.c mi_mkdir.c mi_touch.c mi_chmod.c mi_ls.c mi_link.c mi_escribir.c mi_cat.c mi_stat.c mi_rm.c mi_rmdir.c
     LIBRARIES += directorios.o
     INCLUDES += directorios.h
     PROGRAMS += prueba_nivel7 mi_mkdir mi_touch mi_chmod mi_ls mi_link mi_escribir mi_cat mi_stat mi_rm mi_rmdir
+endif
+
+# -------------------------------------------------------------------------
+# NIVEL 11 - 13: Semaforos, Concurrencia y Simulacion
+# -------------------------------------------------------------------------
+ifneq ($(filter $(LEVEL), 11 12 13),)
+    SOURCES += simulacion.c verificacion.c
+    INCLUDES += simulacion.h verificacion.h
+    PROGRAMS += simulacion verificacion
 endif
 
 # =========================================================================

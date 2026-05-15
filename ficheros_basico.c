@@ -4,11 +4,17 @@
 #include "ficheros_basico.h"
 
 /*
-AUTORES
-=======
-* Calvache Vidal, Antonio
-* Mercadal Forteza, Lluís
-* Salvatierra Romero, Diego Jeroni
+PROGRAMADO, REVISADO Y VERIFICADO POR
+=====================================
+Calvache Vidal, Antonio
+
+REVISADO (SEGUNDA PASADA) POR
+=============================
+Salvatierra Romero, Diego Jeroni
+
+VERIFICADO FINALMENTE Y COMENTADO POR
+=====================================
+Mercadal Forteza, Lluís
 */
 
 // Contadores para el DEBUG del Nivel 6
@@ -376,12 +382,18 @@ char leer_bit(unsigned int nbloque)
  */
 int reservar_bloque()
 {
-    struct superbloque SB;
-    if (bread(posSB, &SB) == FALLO)
-        return FALLO;
+    mi_waitSem(); // <--- INICIO SC
 
-    if (SB.cantBloquesLibres == 0)
+    struct superbloque SB;
+    if (bread(posSB, &SB) == FALLO) {
+        mi_signalSem(); // Liberar antes de error
+        return FALLO;
+    }
+
+    if (SB.cantBloquesLibres == 0){
+        mi_signalSem(); // Liberar antes de error
         return FALLO; // No queda espacio
+    }
 
     unsigned char bufferMB[BLOCKSIZE];
     unsigned char bufferAux[BLOCKSIZE];
@@ -395,8 +407,10 @@ int reservar_bloque()
     // 1. Buscamos el bloque del MB que tenga algún 0
     while (nbloqueabs <= SB.posUltimoBloqueMB && !encontrado)
     {
-        if (bread(nbloqueabs, bufferMB) == FALLO)
+        if (bread(nbloqueabs, bufferMB) == FALLO) {
+            mi_signalSem();
             return FALLO;
+        }
 
         // Si memcmp devuelve 0, son iguales (todo 1s), pasamos al siguiente
         if (memcmp(bufferMB, bufferAux, BLOCKSIZE) != 0)
@@ -425,27 +439,36 @@ int reservar_bloque()
         }
     }
 
-    if (!encontrado)
+    if (!encontrado) {
+        mi_signalSem();
         return FALLO; // Seguridad
+    }
 
     // Teniendo el bloque, byte y bit, calculamos el número lógico del bloque físico
     unsigned int nbloqueMB = nbloqueabs - SB.posPrimerBloqueMB;
     unsigned int nbloque = (nbloqueMB * BLOCKSIZE + posbyte) * 8 + posbit;
 
     // 4. Marcamos como ocupado
-    if (escribir_bit(nbloque, 1) == FALLO)
+    if (escribir_bit(nbloque, 1) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
     // 5. Decrementamos contador en SB
     SB.cantBloquesLibres--;
-    if (bwrite(posSB, &SB) == FALLO)
+    if (bwrite(posSB, &SB) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
     // 6. Limpiamos el bloque de datos (llenar de 0s) para evitar "basura"
     memset(bufferAux, 0, BLOCKSIZE);
-    if (bwrite(nbloque, bufferAux) == FALLO)
+    if (bwrite(nbloque, bufferAux) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
+    mi_signalSem(); // <--- FIN SC
     return nbloque;
 }
 
@@ -465,17 +488,26 @@ int reservar_bloque()
  */
 int liberar_bloque(unsigned int nbloque)
 {
-    if (escribir_bit(nbloque, 0) == FALLO)
+    mi_waitSem(); // <--- INICIO SC
+
+    if (escribir_bit(nbloque, 0) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
     struct superbloque SB;
-    if (bread(posSB, &SB) == FALLO)
+    if (bread(posSB, &SB) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
     SB.cantBloquesLibres++;
-    if (bwrite(posSB, &SB) == FALLO)
+    if (bwrite(posSB, &SB) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
+    mi_signalSem(); // <--- FIN SC
     return nbloque;
 }
 
@@ -564,12 +596,17 @@ int leer_inodo(unsigned int ninodo, struct inodo *inodo)
  */
 int reservar_inodo(unsigned char tipo, unsigned char permisos)
 {
+    mi_waitSem(); // <--- INICIO SC
+
     struct superbloque SB;
-    if (bread(posSB, &SB) == FALLO)
+    if (bread(posSB, &SB) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
     if (SB.cantInodosLibres == 0) {
         fprintf(stderr, RED "Error: No hay inodos libres en el dispositivo.\n" RESET);
+        mi_signalSem();
         return FALLO;
     }
 
@@ -578,14 +615,18 @@ int reservar_inodo(unsigned char tipo, unsigned char permisos)
 
     // 2. Leemos ese inodo para saber a cuál apunta (el siguiente libre)
     struct inodo inodoReservado;
-    if (leer_inodo(posInodoReservado, &inodoReservado) == FALLO)
+    if (leer_inodo(posInodoReservado, &inodoReservado) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
     // 3. Actualizamos el SB para que apunte al siguiente, que ahora será el primer inodo libre
     SB.posPrimerInodoLibre = inodoReservado.punterosDirectos[0];
     SB.cantInodosLibres--;
-    if (bwrite(posSB, &SB) == FALLO)
+    if (bwrite(posSB, &SB) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
     // 4. Inicializamos el inodo reservado con los datos nuevos
     inodoReservado.tipo = tipo;
@@ -606,9 +647,12 @@ int reservar_inodo(unsigned char tipo, unsigned char permisos)
     memset(inodoReservado.punterosIndirectos, 0, sizeof(inodoReservado.punterosIndirectos));
 
     // 5. Escribimos el inodo ya inicializado
-    if (escribir_inodo(posInodoReservado, &inodoReservado) == FALLO)
+    if (escribir_inodo(posInodoReservado, &inodoReservado) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
+    mi_signalSem(); // <--- FIN SC
     return posInodoReservado;
 }
 
@@ -1173,12 +1217,16 @@ int liberar_bloques_inodo(unsigned int primerBL, struct inodo *inodo)
  */
 int liberar_inodo(unsigned int ninodo)
 {
+    mi_waitSem(); // <--- INICIO SC
+
     struct inodo inodo;
     struct superbloque SB;
 
     // 1. Leer inodo
-    if (leer_inodo(ninodo, &inodo) == FALLO)
+    if (leer_inodo(ninodo, &inodo) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
     // 2. Liberar todos sus bloques de datos y punteros asociados
     // Pasamos primerBL = 0 porque queremos borrar todo el archivo
@@ -1193,8 +1241,10 @@ int liberar_inodo(unsigned int ninodo)
     inodo.numBloquesOcupados = 0;
 
     // 4. Actualizar lista de inodos libres
-    if (bread(posSB, &SB) == FALLO)
+    if (bread(posSB, &SB) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
     // Lógica LIFO (Last In, First Out) (pila/lista enlazada)
     // Insertamos el inodo recién liberado en la CABEZA de la lista enlazada de inodos libres.
@@ -1211,14 +1261,19 @@ int liberar_inodo(unsigned int ninodo)
     inodo.mtime = t; // Opcional, pero limpio
 
     // 4. Escribir cambios
-    if (escribir_inodo(ninodo, &inodo) == FALLO)
+    if (escribir_inodo(ninodo, &inodo) == FALLO) {
+        mi_signalSem();
         return FALLO;
-    if (bwrite(posSB, &SB) == FALLO)
+    }
+    if (bwrite(posSB, &SB) == FALLO) {
+        mi_signalSem();
         return FALLO;
+    }
 
     #if DEBUGN6
     fprintf(stderr, "[liberar_inodo()→ Tras liberar inodo: primerInodoLibre=%d]\n", SB.posPrimerInodoLibre);
     #endif
 
+    mi_signalSem(); // <--- FIN SC
     return ninodo;
 }

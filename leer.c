@@ -2,14 +2,16 @@
 #include "ficheros.h"
 
 /*
-AUTORES
-=======
-* Calvache Vidal, Antonio
-* Mercadal Forteza, Lluís
-* Salvatierra Romero, Diego Jeroni
+PROGRAMADO, REVISADO Y VERIFICADO POR
+=====================================
+Calvache Vidal, Antonio
+
+VERIFICADO FINALMENTE Y COMENTADO POR
+=====================================
+Mercadal Forteza, Lluís
 */
 
-#define TAM_BUFFER 1500
+#define TAM_BUFFER (BLOCKSIZE * 4)
 
 /**
  * main (Comando leer)
