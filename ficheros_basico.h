@@ -13,7 +13,7 @@ PROGRAMADO, REVISADO Y VERIFICADO POR
 =====================================
 Calvache Vidal, Antonio
 
-VERIFICADO FINALMENTE Y COMENTADO POR
+VERIFICADO FINALMENTE POR
 =====================================
 Mercadal Forteza, Lluís
 */

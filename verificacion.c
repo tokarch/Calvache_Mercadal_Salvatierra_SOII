@@ -10,7 +10,7 @@ REVISADO (SEGUNDA PASADA) POR
 =============================
 Salvatierra Romero, Diego Jeroni
 
-VERIFICADO FINALMENTE Y COMENTADO POR
+VERIFICADO FINALMENTE POR
 =====================================
 Mercadal Forteza, Lluís
 */
