@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
                 usleep(50000); 
             }
 
-            printf("[Proceso %d: Completadas %d escrituras en %s]\n", getpid(), NUMESCRITURAS, camino_fichero);
+            printf("[Proceso %d: Completadas %d escrituras en %s]\n", proceso, NUMESCRITURAS, camino_fichero);
 
             // Desmontar y salir
             bumount();
