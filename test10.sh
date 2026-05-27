@@ -1,71 +1,140 @@
-#!/bin/bash
-# =============================================================================
-# test10.sh — Test de Nivel 10: Enlaces, borrado y casos de error
-#
-# Verifica: creación de enlaces duros (mi_link), contador de enlaces (nlinks),
-# lectura y escritura a través de enlaces, borrado de enlaces y ficheros
-# (mi_rm), y rechazo de enlaces a directorios.
-# Uso: ./test10.sh
-# =============================================================================
-
-set -e
-
+# Adelaida
+# test10.sh
 clear
 make clean
 make LEVEL=10
 
-# --- Inicialización del sistema de ficheros ---
-echo "=== Inicializando disco ==="
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m                          1ª parte\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_mkfs disco 100000\x1b[0m"
 ./mi_mkfs disco 100000
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_mkdir disco 6 /dir1/\x1b[0m"
+./mi_mkdir disco 6 /dir1/
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_mkdir disco 6 /dir1/dir11/\x1b[0m"
+./mi_mkdir disco 6 /dir1/dir11/
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_touch disco 6 /dir1/dir11/fic1\x1b[0m"
+./mi_touch disco 6 /dir1/dir11/fic1
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_escribir disco /dir1/dir11/fic1 hellooooooo 0\x1b[0m"
+./mi_escribir disco /dir1/dir11/fic1 "hellooooooo" 0
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_mkdir disco 6 /dir2/\x1b[0m"
+./mi_mkdir disco 6 /dir2/
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_mkdir disco 6 /dir2/dir21/\x1b[0m"
+./mi_mkdir disco 6 /dir2/dir21/
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_link disco /dir1/dir11/fic1 /dir2/dir21/fic2\x1b[0m"
+./mi_link disco /dir1/dir11/fic1 /dir2/dir21/fic2
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_cat disco /dir2/dir21/fic2 #ha de mostrar mismo contenido que /dir1/dir11/fic1\x1b[0m"
+./mi_cat disco /dir2/dir21/fic2 
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_stat disco /dir1/dir11/fic1\x1b[0m"
+./mi_stat disco /dir1/dir11/fic1 
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_stat disco /dir2/dir21/fic2 #han de tener el mismo inodo y 2 enlaces\x1b[0m"
+./mi_stat disco /dir2/dir21/fic2
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_link disco /dir1/dir11/fic3 /di2/dir21/fic4  #camino1 ha de existir\x1b[0m"
+./mi_link disco /dir1/dir11/fic3 /di2/dir21/fic4
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_touch disco 6 /dir1/dir11/fic3\x1b[0m"
+./mi_touch disco 6 /dir1/dir11/fic3 
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_link disco /dir1/dir11/fic3 /dir2/dir21/fic4\x1b[0m"
+./mi_link disco /dir1/dir11/fic3 /dir2/dir21/fic4
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_link disco /dir1/dir11/fic3 /dir2/dir21/fic5\x1b[0m"
+./mi_link disco /dir1/dir11/fic3 /dir2/dir21/fic5
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_stat disco /dir1/dir11/fic3\x1b[0m"
+./mi_stat disco /dir1/dir11/fic3
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_link disco /dir1/dir11/fic3 /dir2/dir21/fic2 #camino2 NO ha de existir\x1b[0m"
+./mi_link disco /dir1/dir11/fic3 /dir2/dir21/fic2 #camino2 NO ha de existir 
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m                          2ª parte\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_rmdir disco /dir2/dir21/ #o mi_rm\x1b[0m"
+./mi_rmdir disco /dir2/dir21/ 
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_rm disco /dir2/dir21/fic2\x1b[0m"
+./mi_rm disco /dir2/dir21/fic2
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_stat disco /dir1/dir11/fic1 #Hemos borrado 1 enlace\x1b[0m"
+./mi_stat disco /dir1/dir11/fic1 #
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_rm disco /dir2/dir21/fic2\x1b[0m"
+./mi_rm disco /dir2/dir21/fic2
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_rmdir disco /dir2/dir21/ #o mi_rm\x1b[0m"
+./mi_rmdir disco /dir2/dir21/
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_ls -l disco /dir2/dir21/\x1b[0m"
+./mi_ls -l disco /dir2/dir21/
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_rm disco /dir2/dir21/fic4\x1b[0m"
+./mi_rm disco /dir2/dir21/fic4
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_rm disco /dir2/dir21/fic5\x1b[0m"
+./mi_rm disco /dir2/dir21/fic5
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_rmdir disco /dir2/dir21/ #o mi_rm\x1b[0m"
+./mi_rmdir disco /dir2/dir21/
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_ls -l disco /dir2/\x1b[0m"
+./mi_ls -l disco /dir2/
+echo
 
-echo "=== Creando directorio y fichero ==="
-./mi_mkdir disco 7 /dir1/
-./mi_touch disco 6 /dir1/file1
-./mi_escribir disco /dir1/file1 "contenido original" 0
 
-# --- Test: enlaces y contador de referencias ---
-echo "=== Test: nlinks inicial ==="
-./mi_stat disco /dir1/file1 | grep -q "nlinks: 1" || { echo "FALLO: nlinks deberia ser 1"; exit 1; }
-
-echo "=== Test: crear enlace (mi_link) ==="
-./mi_link disco /dir1/file1 /dir1/link1
-
-echo "=== Test: nlinks despues de link ==="
-./mi_stat disco /dir1/file1 | grep -q "nlinks: 2" || { echo "FALLO: nlinks deberia ser 2"; exit 1; }
-
-echo "=== Test: leer via enlace ==="
-./mi_cat disco /dir1/link1 > /tmp/test10_link.txt
-[ "$(cat /tmp/test10_link.txt)" = "contenido original" ] || { echo "FALLO: contenido del enlace no coincide"; exit 1; }
-
-# --- Test: escritura y borrado vía enlace ---
-echo "=== Test: escribir via enlace ==="
-./mi_escribir disco /dir1/link1 "modificadoXXXXXX" 0
-./mi_cat disco /dir1/file1 > /tmp/test10_modified.txt
-[ "$(cat /tmp/test10_modified.txt | head -c 16)" = "modificadoXXXXXX" ] || { echo "FALLO: escritura via enlace fallo"; exit 1; }
-
-echo "=== Test: borrar enlace (mi_rm) ==="
-./mi_rm disco /dir1/link1
-
-echo "=== Test: nlinks despues de borrar enlace ==="
-./mi_stat disco /dir1/file1 | grep -q "nlinks: 1" || { echo "FALLO: nlinks deberia ser 1 tras borrar enlace"; exit 1; }
-
-echo "=== Test: leer fichero original sigue funcionando ==="
-./mi_cat disco /dir1/file1 > /tmp/test10_final.txt
-[ "$(cat /tmp/test10_final.txt | head -c 16)" = "modificadoXXXXXX" ] || { echo "FALLO: fichero original corrupto"; exit 1; }
-
-# --- Test: casos de error ---
-echo "=== Test: link a directorio debe fallar ==="
-if ./mi_link disco /dir1/ /dir1/badlink 2>/dev/null; then
-    echo "FALLO: mi_link deberia fallar sobre directorio"
-    exit 1
-fi
-
-echo "=== Test: crear y borrar fichero ==="
-./mi_touch disco 6 /dir1/file2
-./mi_rm disco /dir1/file2
-if ./mi_stat disco /dir1/file2 2>/dev/null; then
-    echo "FALLO: el fichero no deberia existir tras rm"
-    exit 1
-fi
-
-echo "OK: test10.sh completado"
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120mComprobamos que al crear 17 subdirectorios los bloques de datos del padre son 2\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m(en un bloque caben 16 entradas de directorio),\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m y que al eliminar un subdirectorio el directorio padre tiene 1 bloque de datos\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_mkdir disco /d1/\x1b[0m"
+./mi_mkdir disco 6 /d1/
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120mcreamos 17 subdirectorios sd0, sd1..., sd16 en d1\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ for i in \$(seq 0 16)\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m> do\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m> ./mi_mkdir disco 6 /d1/sd\$i/\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m> done\x1b[0m"
+for i in $(seq 0 16)
+do
+    ./mi_mkdir disco 6 /d1/sd$i/
+done
+echo
+echo -e "\x1B[38;2;17;245;120mMostramos la metainformacion del directorio para ver que tiene 2 bloques de datos\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_stat disco /d1/\x1b[0m"
+./mi_stat disco /d1/
+echo
+echo -e "\x1B[38;2;17;245;120mListamos el directorio para ver sus subdirectorios\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_ls disco /d1/\x1b[0m"
+./mi_ls disco /d1/
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120mEliminamos el subdirectorio sd3 de d1\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_rmdir disco /d1/sd3/\x1b[0m"
+./mi_rmdir disco /d1/sd3/
+echo
+echo -e "\x1B[38;2;17;245;120mMostramos la metainformacion de d1 para ver que ahora tiene 1 bloque de datos\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_stat disco /d1/\x1b[0m"
+./mi_stat disco /d1/
+echo
+echo -e "\x1B[38;2;17;245;120mVolvemos a listar el directorio para ver que se ha eliminado un subdirectorio\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_ls -l disco /d1/\x1b[0m"
+./mi_ls -l disco /d1/

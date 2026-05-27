@@ -4,17 +4,11 @@
 #include "bloques.h"
 
 /*
-PROGRAMADO, REVISADO Y VERIFICADO POR
-=====================================
-Calvache Vidal, Antonio
-
-REVISADO (SEGUNDA PASADA) POR
-=============================
-Salvatierra Romero, Diego Jeroni
-
-VERIFICADO FINALMENTE POR
-=====================================
-Mercadal Forteza, Lluís
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
 */
 
 // Declaramos el descriptor como 'static' para que actúe como una variable 
@@ -93,7 +87,7 @@ int bumount()
     deleteSem(mutex);
 
     // Llamamos a close() para liberar el descriptor del fichero.
-    if (descriptor == -1)
+    if (close(descriptor) == -1)
     {
         perror(RED "Error en bumount al cerrar el descriptor" RESET);
         return FALLO;

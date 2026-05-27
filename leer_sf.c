@@ -1,16 +1,14 @@
 // leer_sf.c
 // Descripción: Programa auxiliar para verificar la estructura del SF.
 
-#include "ficheros_basico.h"
+#include "directorios.h"
 
 /*
-PROGRAMADO, REVISADO Y VERIFICADO POR
-=====================================
-Calvache Vidal, Antonio
-
-VERIFICADO FINALMENTE POR
-=====================================
-Mercadal Forteza, Lluís
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
 */
 
 /**
@@ -46,6 +44,29 @@ void mostrar_inodo(struct inodo *inodo, int ninodo)
     printf("numBloquesOcupados: %d\n", inodo->numBloquesOcupados);
 }
 
+/* mostrar_buscar_entrada
+ * ----------------------
+ * Función auxiliar para probar la función buscar_entrada con diferentes caminos y opciones de reserva.
+ * Imprime el resultado o el error correspondiente.
+ * * Parámetros:
+ * - camino: ruta a buscar (ej. "/dir1/archivo.txt").
+ * - reservar: 1 para intentar crear la entrada si no existe, 0 para solo buscar.
+ */
+void mostrar_buscar_entrada(char *camino, char reservar)
+{
+    unsigned int p_inodo_dir = 0;
+    unsigned int p_inodo = 0;
+    unsigned int p_entrada = 0;
+    int error;
+    printf("\ncamino: %s, reservar: %d\n", camino, reservar);
+    if ((error = buscar_entrada(camino, &p_inodo_dir, &p_inodo, &p_entrada, reservar, 6)) < 0)
+    {
+        mostrar_error_buscar_entrada(error);
+    }
+    printf("**********************************************************************\n");
+    return;
+}
+
 /**
  * main (Comando leer_sf)
  * ------
@@ -73,7 +94,7 @@ int main(int argc, char **argv)
 
     // 3.
     // Declaramos una estructura local Superbloque.
-    // Usamos bread(posSB, &SB) para leer el bloque 0 entero desde el disco 
+    // Usamos bread(posSB, &SB) para leer el bloque 0 entero desde el disco
     // y volcarlo directamente en la memoria de nuestra variable local SB
     struct superbloque SB;
     if (bread(posSB, &SB) == FALLO)
@@ -149,25 +170,25 @@ int main(int argc, char **argv)
 
     // 3. MAPA DE BITS CON BLOQUES DE METADATOS OCUPADOS
     printf("\nMAPA DE BITS CON BLOQUES DE METADATOS OCUPADOS\n");
-    
+
     // Leemos el bit del bloque 0 (Superbloque)
     printf("posSB: %d → leer_bit(%d) = %d\n", posSB, posSB, leer_bit(posSB));
-    
+
     // Leemos el primer bit del Mapa de Bits
     printf("SB.posPrimerBloqueMB: %d → leer_bit(%d) = %d\n", SB.posPrimerBloqueMB, SB.posPrimerBloqueMB, leer_bit(SB.posPrimerBloqueMB));
-    
+
     // Leemos el último bit del Mapa de Bits
     printf("SB.posUltimoBloqueMB: %d → leer_bit(%d) = %d\n", SB.posUltimoBloqueMB, SB.posUltimoBloqueMB, leer_bit(SB.posUltimoBloqueMB));
-    
+
     // Leemos el primer bit del Array de Inodos
     printf("SB.posPrimerBloqueAI: %d → leer_bit(%d) = %d\n", SB.posPrimerBloqueAI, SB.posPrimerBloqueAI, leer_bit(SB.posPrimerBloqueAI));
-    
+
     // Leemos el último bit del Array de Inodos
     printf("SB.posUltimoBloqueAI: %d → leer_bit(%d) = %d\n", SB.posUltimoBloqueAI, SB.posUltimoBloqueAI, leer_bit(SB.posUltimoBloqueAI));
-    
+
     // Leemos el primer bit de Datos (debería ser 0, está libre)
     printf("SB.posPrimerBloqueDatos: %d → leer_bit(%d) = %d\n", SB.posPrimerBloqueDatos, SB.posPrimerBloqueDatos, leer_bit(SB.posPrimerBloqueDatos));
-    
+
     // Leemos el último bit de Datos (debería ser 0, está libre)
     printf("SB.posUltimoBloqueDatos: %d → leer_bit(%d) = %d\n", SB.posUltimoBloqueDatos, SB.posUltimoBloqueDatos, leer_bit(SB.posUltimoBloqueDatos));
 
@@ -179,7 +200,7 @@ int main(int argc, char **argv)
      printf(RED "Error al leer el inodo raiz.\n" RESET);
     }
     #endif
-    
+
     #if DEBUGN4
     // --- TEST NIVEL 4 ---
     printf("\nINODO 1. TRADUCCION DE LOS BLOQUES LOGICOS 8, 204, 30.004, 400.004 y 468.750\n");
@@ -209,6 +230,24 @@ int main(int argc, char **argv)
     bread(posSB, &SB);
     printf("\nSB.posPrimerInodoLibre = %d\n", SB.posPrimerInodoLibre);
     #endif
+    */
+
+    // --- TEST NIVEL 7 ---
+
+    /*
+    mostrar_buscar_entrada("pruebas/", 1);           // ERROR_CAMINO_INCORRECTO
+    mostrar_buscar_entrada("/pruebas/", 0);          // ERROR_NO_EXISTE_ENTRADA_CONSULTA
+    mostrar_buscar_entrada("/pruebas/docs/", 1);     // ERROR_NO_EXISTE_DIRECTORIO_INTERMEDIO
+    mostrar_buscar_entrada("/pruebas/", 1);          // creamos /pruebas/
+    mostrar_buscar_entrada("/pruebas/docs/", 1);     // creamos /pruebas/docs/
+    mostrar_buscar_entrada("/pruebas/docs/doc1", 1); // creamos /pruebas/docs/doc1
+    mostrar_buscar_entrada("/pruebas/docs/doc1/doc11", 1);
+    // ERROR_NO_SE_PUEDE_CREAR_ENTRADA_EN_UN_FICHERO
+    mostrar_buscar_entrada("/pruebas/", 1);          // ERROR_ENTRADA_YA_EXISTENTE
+    mostrar_buscar_entrada("/pruebas/docs/doc1", 0); // consultamos /pruebas/docs/doc1
+    mostrar_buscar_entrada("/pruebas/docs/doc1", 1); // ERROR_ENTRADA_YA_EXISTENTE
+    mostrar_buscar_entrada("/pruebas/casos/", 1);    // creamos /pruebas/casos/
+    mostrar_buscar_entrada("/pruebas/docs/doc2", 1); // creamos /pruebas/docs/doc2
     */
 
     // 5. Desmontar el dispositivo virtual

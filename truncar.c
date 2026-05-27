@@ -4,13 +4,11 @@
 #include "ficheros.h"
 
 /*
-PROGRAMADO, REVISADO Y VERIFICADO POR
-=====================================
-Calvache Vidal, Antonio
-
-VERIFICADO FINALMENTE POR
-=====================================
-Mercadal Forteza, Lluís
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
 */
 
 /**

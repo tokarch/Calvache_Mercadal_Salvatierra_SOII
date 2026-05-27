@@ -1,22 +1,26 @@
-/*
-PROGRAMADO, REVISADO Y VERIFICADO POR
-=====================================
-Calvache Vidal, Antonio
-
-VERIFICADO FINALMENTE POR
-=====================================
-Mercadal Forteza, Lluís
-*/
-
-/*
- * mi_stat.c - Muestra metadatos de un fichero o directorio (equivalente a stat).
- * Uso: ./mi_stat <disco> <ruta>
- *   <disco>  : nombre del dispositivo virtual (ej. disco)
- *   <ruta>   : camino absoluto dentro del sistema de ficheros
- * Salida: campos del struct STAT del inodo asociado a la ruta.
- */
 #include "directorios.h"
 
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
+
+/**
+ * main (Comando mi_stat)
+ * ------
+ * Programa encargado de mostrar la información (metadatos) del inodo asociado a un fichero o directorio.
+ * Muestra datos como el número de inodo, tipo, permisos, tiempos de acceso/modificación/creación, enlaces, tamaño y bloques.
+ * Uso: ./mi_stat <disco> <ruta>
+ * * Parámetros (Línea de comandos):
+ * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
+ * - argv[2]: Ruta del fichero o directorio a examinar (ej. "/dir1/" o "/fichero.txt").
+ * * Retorno:
+ * - Devuelve EXITO (0) si finaliza correctamente, o FALLO (-1) en caso de error.
+ * * Llama a: bmount(), mi_stat(), mostrar_error_buscar_entrada(), localtime(), sprintf(), printf(), bumount()
+ */
 int main(int argc, char **argv) {
     if (argc != 3) {
         fprintf(stderr, "Sintaxis: %s <disco> <ruta>\n", argv[0]);
@@ -36,10 +40,9 @@ int main(int argc, char **argv) {
         return FALLO;
     }
 
-    /* Conversión de timestamps del struct STAT a cadena legible.
-     * Se usa localtime (no localtime_r) porque la herramienta es monohilo. */
+    // Formateo de fechas
     struct tm *tm;
-    char atime[80], mtime[80], ctime[80];
+    char atime[80], mtime[80], ctime[80], btime[80];
     
     tm = localtime(&stat.atime);
     sprintf(atime, "%04d-%02d-%02d %02d:%02d:%02d", tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
@@ -47,17 +50,16 @@ int main(int argc, char **argv) {
     sprintf(mtime, "%04d-%02d-%02d %02d:%02d:%02d", tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
     tm = localtime(&stat.ctime);
     sprintf(ctime, "%04d-%02d-%02d %02d:%02d:%02d", tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+    tm = localtime(&stat.btime);
+    sprintf(btime, "%04d-%02d-%02d %02d:%02d:%02d", tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
 
-    /* Visualización de los campos del struct STAT del inodo:
-     * tipo ('f' fichero / 'd' directorio), permisos (octal),
-     * timestamps (atime/mtime/ctime), enlaces, tamaño lógico
-     * y bloques físicos ocupados en el dispositivo. */
     printf("Nº de inodo: %d\n", ninodo);
     printf("tipo: %c\n", stat.tipo);
     printf("permisos: %d\n", stat.permisos);
     printf("atime: %s\n", atime);
     printf("mtime: %s\n", mtime);
     printf("ctime: %s\n", ctime);
+    printf("btime: %s\n", btime);
     printf("nlinks: %d\n", stat.nlinks);
     printf("tamEnBytesLog: %d\n", stat.tamEnBytesLog);
     printf("numBloquesOcupados: %d\n", stat.numBloquesOcupados);

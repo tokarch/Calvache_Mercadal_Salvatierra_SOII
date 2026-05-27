@@ -1,41 +1,116 @@
-#!/bin/bash
-# =============================================================================
-# test9.sh — Test de Nivel 9: Escritura, lectura y estadísticas vía path
-#
-# Verifica: escritura y lectura de ficheros usando rutas (mi_escribir, mi_cat),
-# escritura en offset intermedio, y consulta de estadísticas (mi_stat).
-# Uso: ./test9.sh
-# =============================================================================
-
-set -e
-
+# Adelaida
+# test9.sh
 clear
 make clean
-make LEVEL=10
-
-# --- Inicialización del sistema de ficheros ---
-echo "=== Inicializando disco ==="
+make LEVEL=9
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_mkfs disco 100000\x1b[0m"
 ./mi_mkfs disco 100000
-
-echo "=== Creando directorio y fichero ==="
-./mi_mkdir disco 7 /dir1/
-./mi_touch disco 6 /dir1/file1
-
-# --- Test: escritura y lectura básicas ---
-echo "=== Test: escribir via path (mi_escribir) ==="
-./mi_escribir disco /dir1/file1 "hola mundo" 0
-
-echo "=== Test: leer via path (mi_cat) ==="
-./mi_cat disco /dir1/file1 > /tmp/test9_out.txt
-[ "$(cat /tmp/test9_out.txt)" = "hola mundo" ] || { echo "FALLO: contenido no coincide"; exit 1; }
-
-# --- Test: escritura en offset y estadísticas ---
-echo "=== Test: escribir en offset via path ==="
-./mi_escribir disco /dir1/file1 "XYZ" 5
-./mi_cat disco /dir1/file1 > /tmp/test9_out2.txt
-[ "$(cat /tmp/test9_out2.txt)" = "hola XYZdo" ] || { echo "FALLO: escritura en offset no coincide"; exit 1; }
-
-echo "=== Test: stat via path ==="
-./mi_stat disco /dir1/file1 | grep -q "nlinks: 1" || { echo "FALLO: nlinks deberia ser 1"; exit 1; }
-
-echo "OK: test9.sh completado"
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_touch disco 6 /fichero\x1b[0m"
+./mi_touch disco 6 /fichero
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_ls -l  disco /\x1b[0m"
+./mi_ls -l  disco /
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_escribir  disco /fichero "hola que tal" 5120\x1b[0m"
+./mi_escribir  disco /fichero "hola que tal" 5120
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_ls -l  disco /\x1b[0m"
+./mi_ls -l  disco /
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./leer_sf disco\x1b[0m"
+./leer_sf disco
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_chmod disco 4 /fichero #r--\x1b[0m"
+./mi_chmod disco 4 /fichero
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_escribir  disco /fichero "estoy estupendamente" 256000\x1b[0m"
+./mi_escribir  disco /fichero "estoy estupendamente" 256000
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_ls -l  disco /fichero #si no habéis implementado mi_ls  para ficheros eliminar esta línea\x1b[0m"
+./mi_ls -l  disco /fichero
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_mkdir disco 6 /dir1/\x1b[0m"
+./mi_mkdir disco 6 /dir1/
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_touch disco 6 /dir1/fic1\x1b[0m"
+./mi_touch disco 6 /dir1/fic1
+echo
+echo -e "\x1B[38;2;17;245;120m./mi_escribir disco /dir1/fic1 hola1  256000\x1b[0m"
+./mi_escribir disco /dir1/fic1 hola1  256000
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_stat disco /dir1/fic1\x1b[0m"
+./mi_stat disco /dir1/fic1
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ sleep 1 #esperamos un poco para observar los sellos de tiempo\x1b[0m"
+sleep 1 
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_escribir disco /dir1/fic1 hola2  5120 #no cambia tamenBytesLog pero sí mtime y ctime (ocupamos 1 bloque más)\x1b[0m"
+./mi_escribir disco /dir1/fic1 hola2  5120 
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_stat disco /dir1/fic1\x1b[0m"
+./mi_stat disco /dir1/fic1
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ sleep 1 #esperamos un poco para observar los sellos de tiempo\x1b[0m"
+sleep 1 
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_escribir disco /dir1/fic1 hola3  5200 #mismo bloque que offset 5120, cambia mtime pero no ctime\x1b[0m"
+./mi_escribir disco /dir1/fic1 hola3  5200 
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_stat disco /dir1/fic1\x1b[0m"
+./mi_stat disco /dir1/fic1
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120msleep 1 #esperamos un poco para observar los sellos de tiempo\x1b[0m"
+sleep 1
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m./mi_escribir disco /dir1/fic1 hola4 256010 #cambia tamEnBytesLog, mtime y ctime\x1b[0m"
+./mi_escribir disco /dir1/fic1 hola4 256010
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_stat disco /dir1/fic1\x1b[0m"
+./mi_stat disco /dir1/fic1
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m# Comprobación de la caché de directorios (1 entrada para L y otra para E)\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_touch disco 6 /dir1/fic2\x1b[0m"
+./mi_touch disco 6 /dir1/fic2
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_escribir disco /dir1/fic2 "$(cat texto2.txt)" 1000\x1b[0m"
+./mi_escribir disco /dir1/fic2 "$(cat texto2.txt)" 1000
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_cat disco /dir1/fic2 #tambuffer=BLOCKSIZE * 4\x1b[0m"
+./mi_cat disco /dir1/fic2 
+echo
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_escribir disco /dir1/fic2 \"******************************\" 10000\x1b[0m"
+./mi_escribir disco /dir1/fic2 "******************************" 10000
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_ls -l  disco /dir1/\x1b[0m"
+./mi_ls -l  disco /dir1/
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_cat disco /dir1/fic2 #tambuffer=BLOCKSIZE * 4\x1b[0m"
+./mi_cat disco /dir1/fic2 
+echo
+echo
+echo -e "\x1B[38;2;17;245;120m##############################################################\x1b[0m"
+echo -e "\x1B[38;2;17;245;120m$ ./mi_touch disco 6 /dir1/fic3\x1b[0m"
+./mi_touch disco 6 /dir1/fic3
+echo -e "\x1B[38;2;17;245;120m$ ./mi_escribir_varios disco /dir1/fic3 \"--texto repetido en 10 bloques--\" 0\x1b[0m"
+./mi_escribir_varios disco /dir1/fic3 "--texto repetido en 10 bloques--" 0
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_stat disco /dir1/fic3\x1b[0m"
+./mi_stat disco /dir1/fic3
+echo
+echo -e "\x1B[38;2;17;245;120m$ ./mi_cat disco /dir1/fic3 #tambuffer=BLOCKSIZE * 4\x1b[0m"
+./mi_cat disco /dir1/fic3 
+echo

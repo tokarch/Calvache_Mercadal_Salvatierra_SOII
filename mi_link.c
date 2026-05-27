@@ -1,36 +1,30 @@
 // mi_link.c
-// Descripción: Comando para crear enlaces físicos (equivalente a "ln" sin -s).
-//              Un enlace físico es una nueva entrada de directorio que apunta
-//              al mismo inodo (mismos datos y metadatos). Incrementa nlinks.
-//              No se permiten enlaces a directorios para evitar ciclos en el árbol.
-
-/*
-PROGRAMADO, REVISADO Y VERIFICADO POR
-=====================================
-Calvache Vidal, Antonio
-
-VERIFICADO FINALMENTE POR
-=====================================
-Mercadal Forteza, Lluís
-*/
+// Descripción: Comando para crear enlaces físicos.
 
 #include "directorios.h"
+
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
 
 /**
  * main (Comando mi_link)
  * ------
- * Crea un enlace físico (hard link) entre dos rutas del sistema de ficheros.
- * El enlace destino comparte el mismo inodo que el origen: ambos apuntan
- * a los mismos datos. Las rutas deben ser ficheros (no directorios) y no
- * pueden terminar en '/' para evitar ambigüedad semántica.
- *
+ * Programa encargado de crear un enlace físico (hard link) a un fichero existente.
+ * Verifica que ambas rutas correspondan a ficheros (no terminen en '/') antes de intentar
+ * crear el enlace.
+ * Uso: ./mi_link <disco> <ruta_fichero_original> <ruta_enlace>
  * * Parámetros (Línea de comandos):
- *   - argv[1]: Nombre del dispositivo virtual (ej. "disco").
- *   - argv[2]: Ruta absoluta del fichero origen (debe existir).
- *   - argv[3]: Ruta absoluta del nuevo enlace (no debe existir).
+ * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
+ * - argv[2]: Ruta absoluta del fichero original ya existente (ej. "/dir1/fichero.txt").
+ * - argv[3]: Ruta absoluta del nuevo enlace a crear (ej. "/dir1/enlace.txt").
  * * Retorno:
- *   - Devuelve EXITO (0) si se crea el enlace, o FALLO (-1) en caso de error.
- * * Llama a: bmount(), mi_link(), mostrar_error_buscar_entrada(), bumount()
+ * - Devuelve EXITO (0) si finaliza correctamente, o FALLO (-1) en caso de error.
+ * * Llama a: fprintf(), strlen(), bmount(), mi_link(), mostrar_error_buscar_entrada(), bumount()
  */
 int main(int argc, char **argv) {
     if (argc != 4) {
@@ -42,8 +36,7 @@ int main(int argc, char **argv) {
     char *ruta_original = argv[2];
     char *ruta_enlace = argv[3];
 
-    // Verificar que rutas no acaben en '/' para evitar enlaces a directorios
-    // (los enlaces a directorios podrían crear ciclos en el árbol de directorios)
+    // Verificar que rutas no acaben en / (no enlaces a directorios)
     if (ruta_original[strlen(ruta_original)-1] == '/' || ruta_enlace[strlen(ruta_enlace)-1] == '/') {
         fprintf(stderr, "Error: Las rutas deben ser ficheros, no directorios.\n");
         return FALLO;
@@ -51,8 +44,6 @@ int main(int argc, char **argv) {
 
     if (bmount(nombre_dispositivo) == FALLO) return FALLO;
 
-    // mi_link crea una nueva entrada de directorio que apunta al inodo origen,
-    // incrementando su contador de enlaces (nlinks) sin duplicar datos
     int error = mi_link(ruta_original, ruta_enlace);
     if (error < 0) {
         mostrar_error_buscar_entrada(error);

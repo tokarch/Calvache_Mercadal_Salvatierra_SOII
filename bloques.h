@@ -2,17 +2,17 @@
 // Descripción: Definiciones globales, librerías y prototipos de funciones de bajo nivel.
 
 /*
-PROGRAMADO, REVISADO Y VERIFICADO POR
-=====================================
-Calvache Vidal, Antonio
-
-VERIFICADO FINALMENTE POR
-=====================================
-Mercadal Forteza, Lluís
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
 */
 
 #ifndef BLOQUES_H
 #define BLOQUES_H
+
+#include "semaforo_mutex_posix.h"
 
 #include <stdio.h>     // printf, fprintf, stderr, etc.
 #include <stdlib.h>    // exit, malloc, atoi, etc.
@@ -22,8 +22,6 @@ Mercadal Forteza, Lluís
 #include <fcntl.h>     // O_RDWR, O_CREAT, O_TRUNC
 #include <errno.h>     // Gestión de la variable errno
 #include <string.h>    // strerror, memset
-
-#include "semaforo_mutex_posix.h"
 
 // Constantes del sistema
 #define BLOCKSIZE 1024 // Tamaño del bloque en bytes

@@ -7,13 +7,11 @@
 #include "ficheros_basico.h"
 
 /*
-PROGRAMADO, REVISADO Y VERIFICADO POR
-=====================================
-Calvache Vidal, Antonio
-
-VERIFICADO FINALMENTE POR
-=====================================
-Mercadal Forteza, Lluís
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
 */
 
 // Estructura para devolver metadatos de un fichero (similar a stat de Linux)
@@ -24,6 +22,7 @@ struct STAT
     time_t atime;                    // Último acceso
     time_t mtime;                    // Última modificación
     time_t ctime;                    // Último cambio de metadatos
+    time_t btime;                    // Creación del inodo (birth)
     unsigned int nlinks;             // Número de enlaces
     unsigned int tamEnBytesLog;      // Tamaño en bytes lógicos
     unsigned int numBloquesOcupados; // Bloques físicos ocupados

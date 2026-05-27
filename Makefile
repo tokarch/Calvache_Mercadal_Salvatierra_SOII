@@ -5,13 +5,12 @@
 # Salvatierra Romero, Diego Jeroni
 
 CC=gcc
-# He añadido un -DDEBUGN8=0 por si lo necesitáis más adelante
-CFLAGS=-c -g -Wall -std=gnu99 -DDEBUGN3=1 -DDEBUGN4=1 -DDEBUGN5=1 -DDEBUGN6=1 -DDEBUGN7=0 -DDEBUGN8=0
+CFLAGS=-c -g -Wall -std=gnu99 -DDEBUGN3=0 -DDEBUGN4=0 -DDEBUGN5=0 -DDEBUGN6=0 -DDEBUGN7=0 -DDEBUGN8=0 -DDEBUGN9=0 -DDEBUGN10=0 -DDEBUGN11=0 -DDEBUGN12=1 -DDEBUGN13=0
 LDFLAGS=-pthread
 
 # =========================================================================
 # CONFIGURACIÓN DE NIVELES
-# Uso: make LEVEL=8  (Compila hasta el nivel 8)
+# Uso: make LEVEL=13  (Compila hasta el nivel 13)
 # Si no se especifica LEVEL, compila todo por defecto (nivel 13)
 # =========================================================================
 LEVEL ?= 13
@@ -22,7 +21,7 @@ LEVEL ?= 13
 # -------------------------------------------------------------------------
 SOURCES = mi_mkfs.c bloques.c ficheros_basico.c leer_sf.c semaforo_mutex_posix.c
 LIBRARIES = bloques.o ficheros_basico.o semaforo_mutex_posix.o
-INCLUDES = bloques.h ficheros_basico.h
+INCLUDES = bloques.h ficheros_basico.h semaforo_mutex_posix.h
 PROGRAMS = mi_mkfs leer_sf
 
 # -------------------------------------------------------------------------
@@ -39,14 +38,14 @@ endif
 # NIVEL 7 - 10: Directorios, Path I/O y Links
 # -------------------------------------------------------------------------
 ifneq ($(filter $(LEVEL), 7 8 9 10 11 12 13),)
-    SOURCES += directorios.c prueba_nivel7.c mi_mkdir.c mi_touch.c mi_chmod.c mi_ls.c mi_link.c mi_escribir.c mi_cat.c mi_stat.c mi_rm.c mi_rmdir.c
+    SOURCES += directorios.c prueba_nivel7.c mi_mkdir.c mi_touch.c mi_chmod.c mi_ls.c mi_link.c mi_escribir.c mi_cat.c mi_stat.c mi_rm.c mi_rmdir.c mi_escribir_varios.c mi_rm_r.c
     LIBRARIES += directorios.o
     INCLUDES += directorios.h
-    PROGRAMS += prueba_nivel7 mi_mkdir mi_touch mi_chmod mi_ls mi_link mi_escribir mi_cat mi_stat mi_rm mi_rmdir
+    PROGRAMS += prueba_nivel7 mi_mkdir mi_touch mi_chmod mi_ls mi_link mi_escribir mi_cat mi_stat mi_rm mi_rmdir mi_escribir_varios mi_rm_r
 endif
 
 # -------------------------------------------------------------------------
-# NIVEL 11 - 13: Semaforos, Concurrencia y Simulacion
+# NIVEL 11 - 13: Simulación y Verificación de Concurrencia
 # -------------------------------------------------------------------------
 ifneq ($(filter $(LEVEL), 11 12 13),)
     SOURCES += simulacion.c verificacion.c
@@ -120,4 +119,4 @@ test:
 	@echo "=== TODOS LOS TESTS OK ==="
 
 clean:
-	rm -rf *.o *~ $(PROGRAMS) disco* ext*
+	rm -rf *.o *~ $(PROGRAMS) disco* ext* res*

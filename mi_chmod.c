@@ -1,31 +1,25 @@
-/*
-PROGRAMADO, REVISADO Y VERIFICADO POR
-=====================================
-Calvache Vidal, Antonio
-
-VERIFICADO FINALMENTE POR
-=====================================
-Mercadal Forteza, Lluís
-*/
-// mi_chmod.c
-// Descripción: Comando para cambiar los permisos de un fichero o directorio existente.
-// Los permisos se expresan en octal de 0 a 7 (combinación de lectura, escritura y ejecución).
-
 #include "directorios.h"
+
+/*
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
+*/
 
 /**
  * main (Comando mi_chmod)
  * ------
- * Modifica los permisos de un fichero o directorio existente.
+ * Programa encargado de cambiar los permisos de un fichero o directorio en el dispositivo virtual.
  * Uso: ./mi_chmod <disco> <permisos> <ruta>
- * * Parámetros:
- *   - argv[1]: Nombre del dispositivo virtual.
- *   - argv[2]: Permisos en octal (0-7).
- *   - argv[3]: Ruta del fichero o directorio.
+ * * Parámetros (Línea de comandos):
+ * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
+ * - argv[2]: Nuevos permisos a asignar a la entrada (0-7).
+ * - argv[3]: Ruta del fichero o directorio a modificar (ej. "/dir1/" o "/fichero.txt").
  * * Retorno:
- *   - EXITO (0) si se cambian correctamente, FALLO (-1) en caso de error.
- * * Nota:
- *   - El rango 0-7 sigue el modelo octal: 4 (lectura), 2 (escritura), 1 (ejecución).
+ * - Devuelve EXITO (0) si finaliza correctamente, o FALLO (-1) en caso de error.
+ * * Llama a: atoi(), bmount(), mi_chmod(), mostrar_error_buscar_entrada(), bumount()
  */
 int main(int argc, char **argv) {
     if (argc != 4) {
@@ -37,7 +31,6 @@ int main(int argc, char **argv) {
     int permisos = atoi(argv[2]);
     char *camino = argv[3];
 
-    // Validamos que los permisos estén en el rango octal 0-7
     if (permisos < 0 || permisos > 7) {
         fprintf(stderr, "Error: permisos invalidos\n");
         return FALLO;

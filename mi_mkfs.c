@@ -1,17 +1,14 @@
 // mi_mkfs.c
 // Descripción: Comando para crear y formatear el disco virtual. (Versión Nivel 2).
 
-#include "ficheros_basico.h"
 #include "directorios.h"
 
 /*
-PROGRAMADO, REVISADO Y VERIFICADO POR
-=====================================
-Calvache Vidal, Antonio
-
-VERIFICADO FINALMENTE POR
-=====================================
-Mercadal Forteza, Lluís
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
 */
 
 /**

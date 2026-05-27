@@ -2,17 +2,11 @@
 // Descripción: Programa que simula accesos concurrentes al SF (Nivel 12).
 
 /*
-PROGRAMADO, REVISADO Y VERIFICADO POR
-=====================================
-Calvache Vidal, Antonio
-
-REVISADO (SEGUNDA PASADA) POR
-=============================
-Salvatierra Romero, Diego Jeroni
-
-VERIFICADO FINALMENTE POR
-=====================================
-Mercadal Forteza, Lluís
+AUTORES
+=======
+* Calvache Vidal, Antonio
+* Mercadal Forteza, Lluís
+* Salvatierra Romero, Diego Jeroni
 */
 
 #include "directorios.h"
@@ -26,35 +20,71 @@ Mercadal Forteza, Lluís
 
 int acabados = 0; // Contador de procesos finalizados
 
-// Enterrador de procesos zombies
-void reaper() {
+/**
+ * reaper
+ * ------
+ * Función manejadora de señales (enterrador de procesos zombies).
+ * Se ejecuta de forma asíncrona cuando un proceso hijo termina (recibe SIGCHLD).
+ * Utiliza waitpid() con el flag WNOHANG para "recolectar" a los hijos terminados
+ * sin bloquear la ejecución del proceso padre, incrementando el contador global.
+ * * Parámetros:
+ * - Ninguno.
+ * * Retorno:
+ * - Ninguno (void).
+ * * Llama a: waitpid()
+ * * Es llamada por: Sistema Operativo (al recibir SIGCHLD)
+ */
+void reaper()
+{
     pid_t ended;
-    while ((ended = waitpid(-1, NULL, WNOHANG)) > 0) {
+    // 1. waitpid() con WNOHANG recoge cualquier hijo terminado (-1) sin bloquear.
+    // El bucle while permite procesar múltiples hijos si terminaron simultáneamente.
+    while ((ended = waitpid(-1, NULL, WNOHANG)) > 0)
+    {
         acabados++;
     }
 }
 
-int main(int argc, char **argv) {
-    if (argc != 2) {
+/**
+ * main (Comando simulacion)
+ * ------
+ * Programa encargado de simular accesos concurrentes al sistema de ficheros.
+ * Crea 100 procesos hijos, cada uno de los cuales realiza 50 escrituras en
+ * posiciones aleatorias de su propio fichero "prueba.dat", demostrando el
+ * funcionamiento correcto de los semáforos y exclusión mutua.
+ * Uso: ./simulacion <disco>
+ * * Parámetros (Línea de comandos):
+ * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
+ * * Retorno:
+ * - Devuelve EXITO (0) si finaliza correctamente, o FALLO (-1) en caso de error.
+ * * Llama a: fprintf(), signal(), bmount(), time(), localtime(), sprintf(), mi_creat(), bumount(), printf(), fork(), getpid(), snprintf(), srand(), gettimeofday(), rand(), mi_write(), usleep(), exit(), pause()
+ */
+int main(int argc, char **argv)
+{
+    // 1. Verificación de argumentos
+    if (argc != 2)
+    {
         fprintf(stderr, "Sintaxis: %s <disco>\n", argv[0]);
         return FALLO;
     }
 
-    // Asociar la señal SIGCHLD al enterrador
+    // 2. Asociar la señal SIGCHLD al manejador 'reaper' (enterrador)
     signal(SIGCHLD, reaper);
 
-    // 1. Montar dispositivo (Padre)
-    if (bmount(argv[1]) == FALLO) return FALLO;
+    // 3. Montar el dispositivo virtual (Proceso Padre)
+    if (bmount(argv[1]) == FALLO)
+        return FALLO;
 
-    // 2. Crear directorio de simulación: /simul_aaaammddhhmmss/
+    // 4. Crear directorio de simulación raíz con el formato: /simul_aaaammddhhmmss/
     char camino_simul[TAMNOMBRE];
     time_t t = time(NULL);
     struct tm *tm = localtime(&t);
-    sprintf(camino_simul, "/simul_%04d%02d%02d%02d%02d%02d/", 
-            tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, 
+    sprintf(camino_simul, "/simul_%04d%02d%02d%02d%02d%02d/",
+            tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
             tm->tm_hour, tm->tm_min, tm->tm_sec);
-    
-    if (mi_creat(camino_simul, 6) == FALLO) {
+
+    if (mi_creat(camino_simul, 6) == FALLO)
+    {
         fprintf(stderr, "Error creando directorio de simulacion\n");
         bumount();
         return FALLO;
@@ -63,71 +93,81 @@ int main(int argc, char **argv) {
 
     printf("*** INICIANDO SIMULACION (%d procesos, %d escrituras cada uno) ***\n", NUMPROCESOS, NUMESCRITURAS);
 
-    // 3. Bucle de creación de procesos
-    for (int proceso = 1; proceso <= NUMPROCESOS; proceso++) {
+    // 5. Bucle de creación de procesos hijos concurrentes
+    for (int proceso = 1; proceso <= NUMPROCESOS; proceso++)
+    {
         pid_t pid = fork();
 
-        if (pid == 0) { // --- PROCESO HIJO ---
-            // Remontar dispositivo para tener descriptor propio
-            if (bmount(argv[1]) == FALLO) exit(1);
+        if (pid == 0)
+        { // --- PROCESO HIJO ---
+            // 6. Remontar dispositivo para evitar compartir el offset del descriptor de fichero con el padre/hermanos
+            if (bmount(argv[1]) == FALLO)
+                exit(1);
 
-            // Crear directorio del proceso: /simul_.../proceso_PID/
+            // 7. Crear el directorio personal del proceso: /simul_.../proceso_PID/
             char camino_proceso[TAMNOMBRE * 2];
             sprintf(camino_proceso, "%sproceso_%d/", camino_simul, getpid());
-            if (mi_creat(camino_proceso, 6) == FALLO) {
+            if (mi_creat(camino_proceso, 6) == FALLO)
+            {
                 fprintf(stderr, "Error creando directorio proceso %d\n", getpid());
                 exit(1);
             }
 
-            // Crear fichero prueba.dat: /simul_.../proceso_PID/prueba.dat
+            // 8. Crear fichero de registros del proceso: /simul_.../proceso_PID/prueba.dat
             char camino_fichero[TAMNOMBRE * 3];
             snprintf(camino_fichero, sizeof(camino_fichero), "%sprueba.dat", camino_proceso);
-            if (mi_creat(camino_fichero, 6) == FALLO) {
+            if (mi_creat(camino_fichero, 6) == FALLO)
+            {
                 fprintf(stderr, "Error creando fichero proceso %d\n", getpid());
                 exit(1);
             }
 
-            // Inicializar semilla aleatoria única
+            // 9. Inicializar semilla aleatoria única basada en el tiempo y el PID del hijo
             srand(time(NULL) + getpid());
 
-            // Bucle de escrituras
-            for (int nescritura = 1; nescritura <= NUMESCRITURAS; nescritura++) {
+            // 10. Bucle de escrituras aleatorias para forzar concurrencia y probar semáforos
+            for (int nescritura = 1; nescritura <= NUMESCRITURAS; nescritura++)
+            {
                 struct REGISTRO registro;
                 gettimeofday(&registro.fecha, NULL);
                 registro.pid = getpid();
                 registro.nEscritura = nescritura;
                 registro.nRegistro = rand() % REGMAX; // Posición aleatoria [0, REGMAX-1]
 
-                // Escribir registro en la posición correspondiente
-                // offset = nRegistro * sizeof(REGISTRO)
-                mi_write(camino_fichero, &registro, 
-                         registro.nRegistro * sizeof(struct REGISTRO), 
+                // 11. Escribir registro en la posición calculada (offset = nRegistro * tamaño_registro)
+                mi_write(camino_fichero, &registro,
+                         registro.nRegistro * sizeof(struct REGISTRO),
                          sizeof(struct REGISTRO));
 
-                // Esperar 0.05 segundos
-                usleep(50000); 
+#if DEBUGN12
+                fprintf(stderr, "[simulación.c → Escritura %d en %s]\n", nescritura, camino_fichero);
+#endif
+
+                // 12. Esperar 50ms para escalonar escrituras y simular carga real
+                usleep(50000);
             }
 
             printf("[Proceso %d: Completadas %d escrituras en %s]\n", proceso, NUMESCRITURAS, camino_fichero);
 
-            // Desmontar y salir
+            // 13. Desmontar dispositivo local y terminar proceso
             bumount();
             exit(0); // Lanza SIGCHLD al padre
         }
 
         // --- PROCESO PADRE ---
-        // Esperar 0.15 segundos antes de lanzar el siguiente
+        // 14. Esperar 150ms antes de lanzar el siguiente hijo para no saturar al SO de golpe
         usleep(150000);
     }
 
-    // 4. Esperar a que terminen todos los hijos
-    while (acabados < NUMPROCESOS) {
+    // 15. Bloquear al padre hasta que todos los hijos finalicen su ejecución
+    while (acabados < NUMPROCESOS)
+    {
         pause(); // Espera hasta recibir una señal (SIGCHLD)
     }
 
     printf("Todos los procesos han terminado.\n");
 
-    // 5. Desmontar (Padre)
+    // 16. Desmontar dispositivo y terminar simulación
     bumount();
     return EXITO;
 }
