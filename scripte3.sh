@@ -9,7 +9,7 @@
 # =============================================================================
 
 make clean
-make CFLAGS="-c -g -Wall -std=gnu99 -DDEBUGN3=0 -DDEBUGN4=0 -DDEBUGN5=0 -DDEBUGN6=0 -DDEBUGN7=0 -DDEBUGN8=0"
+make
 
 # --- Inicialización del dispositivo ---
 ./mi_mkfs disco 100000

@@ -5,7 +5,7 @@
 # Salvatierra Romero, Diego Jeroni
 
 CC=gcc
-CFLAGS=-c -g -Wall -std=gnu99 -DDEBUGN3=0 -DDEBUGN4=0 -DDEBUGN5=0 -DDEBUGN6=0 -DDEBUGN7=0 -DDEBUGN8=0 -DDEBUGN9=0 -DDEBUGN10=0 -DDEBUGN11=0 -DDEBUGN12=1 -DDEBUGN13=0
+CFLAGS=-c -g -Wall -std=gnu99 -DDEBUGN3=0 -DDEBUGN4=0 -DDEBUGN5=0 -DDEBUGN6=0 -DDEBUGN7=0 -DDEBUGN8=0 -DDEBUGN9=0 -DDEBUGN10=0 -DDEBUGN11=0 -DDEBUGN12=0 -DDEBUGN13=0
 LDFLAGS=-pthread
 
 # =========================================================================

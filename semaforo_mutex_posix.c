@@ -1,59 +1,43 @@
-// semaforo_mutex_posix.c
-// Descripción: Implementación de semáforos POSIX con nombre.
-
-/*
-PROGRAMADO, REVISADO Y VERIFICADO POR
-=====================================
-Calvache Vidal, Antonio
-
-VERIFICADO FINALMENTE POR
-=====================================
-Mercadal Forteza, Lluís
-*/
-
 #include "semaforo_mutex_posix.h"
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <stdio.h>
-#include <stdlib.h>
 
-// Nombre único para el semáforo en el sistema
-#define SEM_NAME "/sem_mi_sf" 
+/* Ejemplo de creación e inicialización de semáforos POSIX para MUTEX con "semáforos con nombre" (named) */
+
 
 sem_t *initSem() {
-    // Abrimos o creamos el semáforo. Valor inicial = 1 (Mutex)
-    // O_CREAT: Crear si no existe.
-    // 0644: Permisos.
-    // 1: Valor inicial (un solo proceso entra a la vez).
-    sem_t *sem = sem_open(SEM_NAME, O_CREAT, 0644, 1);
-    
-    if (sem == SEM_FAILED) {
-        perror("Error en initSem");
-        return SEM_FAILED;
-    }
-    return sem;
+   /* name debe ser un nombre de caracteres ascii que comienze con "/", p.e. "/mimutex" */
+   sem_t *sem;
+
+
+   sem = sem_open(SEM_NAME, O_CREAT, S_IRWXU, SEM_INIT_VALUE);
+   if (sem == SEM_FAILED) {
+       perror("Error sem_open()");
+       return NULL;
+   }
+   return sem;
 }
+
+
+/* void deleteSem() {
+   sem_unlink(SEM_NAME);
+   // borra el semáforo del sistema y da problemas cuando
+   // los hijos en la simulación ejecutan bumount()
+} */
+
 
 void deleteSem(sem_t *sem) {
-    // Cerrar la referencia del proceso y desvincular el nombre
-    if (sem_close(sem) == -1) {
-        perror("Error en deleteSem (sem_close)");
-    }
-    // sem_unlink devuelve ENOENT si otro proceso ya lo desvinculó → esperado, no es error
-    if (sem_unlink(SEM_NAME) == -1 && errno != ENOENT) {
-        perror("Error en deleteSem (sem_unlink)");
-    }
+   //printf("Closing sem in address: %p\n", (void *)sem);
+   if (sem_close(sem) == -1) {
+       perror("Error deleteSem()");
+   }
 }
+
 
 void signalSem(sem_t *sem) {
-    if (sem_post(sem) == -1) {
-        perror("Error en signalSem");
-    }
+   sem_post(sem);
 }
 
+
 void waitSem(sem_t *sem) {
-    if (sem_wait(sem) == -1) {
-        perror("Error en waitSem");
-    }
+   sem_wait(sem);
 }

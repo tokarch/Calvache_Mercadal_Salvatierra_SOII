@@ -1,25 +1,16 @@
-// semaforo_mutex_posix.h
-// Descripción: Cabecera para la gestión de semáforos POSIX.
-
-/*
-PROGRAMADO, REVISADO Y VERIFICADO POR
-=====================================
-Calvache Vidal, Antonio
-
-VERIFICADO FINALMENTE POR
-=====================================
-Mercadal Forteza, Lluís
-*/
-
-#ifndef SEMAFORO_MUTEX_POSIX_H
-#define SEMAFORO_MUTEX_POSIX_H
-
+ /* semaforo_mutex_posix.h */
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <semaphore.h>
 
-// Prototipos
+
+#define SEM_NAME "/mymutex" /* Usamos este nombre para el semáforo mutex */
+#define SEM_INIT_VALUE 1 /* Valor inicial de los mutex */
+
+
 sem_t *initSem();
 void deleteSem(sem_t *sem);
 void signalSem(sem_t *sem);
 void waitSem(sem_t *sem);
 
-#endif // SEMAFORO_MUTEX_POSIX_H

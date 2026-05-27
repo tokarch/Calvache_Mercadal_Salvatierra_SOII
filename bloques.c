@@ -57,7 +57,7 @@ int bmount(const char *camino)
     // NIVEL 11: Inicializar semáforo
     if (!mutex) { // Solo si no está inicializado ya
         mutex = initSem();
-        if (mutex == SEM_FAILED) {
+        if (mutex == NULL) {
             close(descriptor);
             return FALLO;
         }

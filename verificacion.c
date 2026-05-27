@@ -237,6 +237,9 @@ int main(int argc, char **argv) {
         // Mostrar por pantalla
         printf("%s", datos_proceso);
 
+        // Usamos i+1 porque 'i' es el contador del bucle for que recorre las entradas
+        printf("[%d) %d escrituras validadas en %s]\n", i + 1, info.nEscrituras, camino_fichero);
+
         // Añadir al informe.txt (append).
         // Se obtiene el tamaño actual para escribir al final y concatenar cada proceso.
         struct STAT stat_informe;
