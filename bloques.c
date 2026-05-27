@@ -79,8 +79,6 @@ int bmount(const char *camino)
  */
 int bumount()
 {
-    descriptor = close(descriptor);
-
     // NIVEL 11: Eliminar semáforo (solo el padre debería llamar a deleteSem,
     // pero en la práctica cada proceso cierra su referencia; el semáforo real
     // se destruye cuando el último proceso lo cierra).
