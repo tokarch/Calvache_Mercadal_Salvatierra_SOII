@@ -113,6 +113,12 @@ int buscar_entrada(const char *camino_parcial, unsigned int *p_inodo_dir, unsign
     // 1. Caso base: Terminamos la recursión si el camino es la raíz "/"
     if (strcmp(camino_parcial, "/") == 0)
     {
+        // Protección: El directorio raíz ya existe, no se puede volver a crear
+        if (reservar == 1)
+        {
+            return ERROR_ENTRADA_YA_EXISTENTE; 
+        }
+        
         *p_inodo = SB.posInodoRaiz; // Inodo 0
         *p_entrada = 0;
         return EXITO;
