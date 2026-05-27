@@ -57,4 +57,10 @@ int mi_read(const char *camino, void *buf, unsigned int offset, unsigned int nby
 int mi_link(const char *camino1, const char *camino2);
 int mi_unlink(const char *camino);
 
+// --- FUNCIONALIDADES EXTRA ---
+int mi_rn(const char *camino, const char *nuevo_nombre);
+int mi_mv(const char *origen, const char *destino);
+int mi_cp_f(const char *origen, const char *destino);
+
+
 #endif // DIRECTORIOS_H

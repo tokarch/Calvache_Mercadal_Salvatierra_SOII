@@ -38,10 +38,10 @@ endif
 # NIVEL 7 - 10: Directorios, Path I/O y Links
 # -------------------------------------------------------------------------
 ifneq ($(filter $(LEVEL), 7 8 9 10 11 12 13),)
-    SOURCES += directorios.c prueba_nivel7.c mi_mkdir.c mi_touch.c mi_chmod.c mi_ls.c mi_link.c mi_escribir.c mi_cat.c mi_stat.c mi_rm.c mi_rmdir.c mi_escribir_varios.c mi_rm_r.c
+    SOURCES += directorios.c prueba_nivel7.c mi_mkdir.c mi_touch.c mi_chmod.c mi_ls.c mi_link.c mi_escribir.c mi_cat.c mi_stat.c mi_rm.c mi_rmdir.c mi_escribir_varios.c mi_rm_r.c mi_rn.c mi_mv.c mi_cp_f.c
     LIBRARIES += directorios.o
     INCLUDES += directorios.h
-    PROGRAMS += prueba_nivel7 mi_mkdir mi_touch mi_chmod mi_ls mi_link mi_escribir mi_cat mi_stat mi_rm mi_rmdir mi_escribir_varios mi_rm_r
+    PROGRAMS += prueba_nivel7 mi_mkdir mi_touch mi_chmod mi_ls mi_link mi_escribir mi_cat mi_stat mi_rm mi_rmdir mi_escribir_varios mi_rm_r mi_rn mi_mv mi_cp_f
 endif
 
 # -------------------------------------------------------------------------
@@ -119,4 +119,4 @@ test:
 	@echo "=== TODOS LOS TESTS OK ==="
 
 clean:
-	rm -rf *.o *~ $(PROGRAMS) disco* ext* res*
+	rm -rf *.o *~ $(PROGRAMS) disco* ext* res* mi_rn mi_mv mi_cp_f

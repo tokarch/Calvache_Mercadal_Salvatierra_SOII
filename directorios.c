@@ -881,3 +881,188 @@ int mi_unlink(const char *camino)
     mi_signalSem();
     return EXITO;
 }
+
+/**
+ * mi_rn
+ * ------
+ * Renombra un fichero o directorio dentro de su mismo directorio padre.
+ */
+int mi_rn(const char *camino, const char *nuevo_nombre) {
+    mi_waitSem();
+    unsigned int p_inodo_dir = 0, p_inodo = 0, p_entrada = 0;
+    int error;
+
+    // Comprobamos que el nuevo nombre no sea una ruta (no contenga '/')
+    if (strchr(nuevo_nombre, '/') != NULL) {
+        fprintf(stderr, "Error: El nuevo nombre no puede contener '/'\n");
+        mi_signalSem();
+        return FALLO;
+    }
+
+    // Buscamos la entrada actual para localizarla
+    error = buscar_entrada(camino, &p_inodo_dir, &p_inodo, &p_entrada, 0, 0);
+    if (error < 0) {
+        mi_signalSem();
+        return error;
+    }
+
+    struct inodo inodo_dir;
+    if (leer_inodo(p_inodo_dir, &inodo_dir) == FALLO) {
+        mi_signalSem();
+        return FALLO;
+    }
+
+    struct entrada buffer_entradas[BLOCKSIZE / sizeof(struct entrada)];
+    int offset = 0;
+    int num_entradas = inodo_dir.tamEnBytesLog / sizeof(struct entrada);
+    int entrada_encontrada = 0;
+    struct entrada ent_modificar;
+
+    // Leemos el directorio padre para verificar duplicados y extraer la entrada a modificar
+    while (offset < inodo_dir.tamEnBytesLog) {
+        if (mi_read_f(p_inodo_dir, buffer_entradas, offset, BLOCKSIZE) < 0) {
+            mi_signalSem();
+            return FALLO;
+        }
+        
+        int leidos = BLOCKSIZE / sizeof(struct entrada);
+        for (int i = 0; i < leidos && (offset / sizeof(struct entrada) + i) < num_entradas; i++) {
+            // Verificamos que el nuevo nombre no exista ya
+            if (strcmp(buffer_entradas[i].nombre, nuevo_nombre) == 0) {
+                mi_signalSem();
+                return ERROR_ENTRADA_YA_EXISTENTE;
+            }
+            // Guardamos la entrada original que vamos a modificar
+            if ((offset / sizeof(struct entrada) + i) == p_entrada) {
+                ent_modificar = buffer_entradas[i];
+                entrada_encontrada = 1;
+            }
+        }
+        offset += BLOCKSIZE;
+    }
+
+    if (!entrada_encontrada) {
+        mi_signalSem();
+        return ERROR_NO_EXISTE_ENTRADA_CONSULTA;
+    }
+
+    // Actualizamos el nombre en la estructura
+    memset(ent_modificar.nombre, 0, TAMNOMBRE);
+    strncpy(ent_modificar.nombre, nuevo_nombre, TAMNOMBRE - 1);
+
+    // Sobrescribimos la entrada antigua en su posición original
+    if (mi_write_f(p_inodo_dir, &ent_modificar, p_entrada * sizeof(struct entrada), sizeof(struct entrada)) < 0) {
+        mi_signalSem();
+        return FALLO;
+    }
+
+    // Limpiamos las cachés por seguridad tras un renombrado
+    memset(UltimaEntradaLectura.camino, 0, sizeof(UltimaEntradaLectura.camino));
+    UltimaEntradaLectura.p_inodo = -1; 
+    memset(UltimaEntradaEscritura.camino, 0, sizeof(UltimaEntradaEscritura.camino));
+    UltimaEntradaEscritura.p_inodo = -1;
+
+    mi_signalSem();
+    return EXITO;
+}
+
+/**
+ * mi_mv
+ * ------
+ * Mueve un fichero de una ruta a otra. Equivale a crear un enlace en el destino
+ * y borrar el enlace del origen (solo para ficheros).
+ */
+int mi_mv(const char *origen, const char *destino) {
+    char ruta_destino_completa[TAMNOMBRE * PROFUNDIDAD];
+    strcpy(ruta_destino_completa, destino);
+
+    // Si el destino es un directorio (acaba en '/'), le concatenamos el nombre del fichero origen
+    if (destino[strlen(destino) - 1] == '/') {
+        char nombre_origen[TAMNOMBRE];
+        char origen_copia[TAMNOMBRE * PROFUNDIDAD];
+        strcpy(origen_copia, origen);
+        
+        char *ultimo_slash = strrchr(origen_copia, '/');
+        if (ultimo_slash != NULL) {
+            strcpy(nombre_origen, ultimo_slash + 1);
+        } else {
+            strcpy(nombre_origen, origen_copia);
+        }
+        strcat(ruta_destino_completa, nombre_origen);
+    }
+
+    // 1. Enlazamos la nueva ruta apuntando al inodo original
+    if (mi_link(origen, ruta_destino_completa) < 0) {
+        return FALLO;
+    }
+
+    // 2. Eliminamos la entrada original
+    if (mi_unlink(origen) < 0) {
+        return FALLO;
+    }
+
+    return EXITO;
+}
+
+/**
+ * mi_cp_f
+ * ------
+ * Copia el contenido completo de un fichero a otro destino creando un inodo nuevo.
+ */
+int mi_cp_f(const char *origen, const char *destino) {
+    unsigned int p_inodo_dir = 0, p_inodo_origen = 0, p_entrada = 0;
+    
+    // 1. Localizar inodo del fichero de origen
+    if (buscar_entrada(origen, &p_inodo_dir, &p_inodo_origen, &p_entrada, 0, 0) < 0) {
+        return FALLO;
+    }
+
+    struct inodo inodo_origen;
+    if (leer_inodo(p_inodo_origen, &inodo_origen) == FALLO) {
+        return FALLO;
+    }
+
+    // 2. Generar la ruta de destino completa
+    char ruta_destino_completa[TAMNOMBRE * PROFUNDIDAD];
+    strcpy(ruta_destino_completa, destino);
+    
+    if (destino[strlen(destino) - 1] == '/') {
+        char nombre_origen[TAMNOMBRE];
+        char origen_copia[TAMNOMBRE * PROFUNDIDAD];
+        strcpy(origen_copia, origen);
+        char *ultimo_slash = strrchr(origen_copia, '/');
+        if (ultimo_slash != NULL) {
+            strcpy(nombre_origen, ultimo_slash + 1);
+        } else {
+            strcpy(nombre_origen, origen_copia);
+        }
+        strcat(ruta_destino_completa, nombre_origen);
+    }
+
+    // 3. Crear el nuevo fichero con los permisos del original
+    if (mi_creat(ruta_destino_completa, inodo_origen.permisos) < 0) {
+        return FALLO;
+    }
+
+    // 4. Copiar los datos iterativamente bloque a bloque
+    char buffer_lectura[BLOCKSIZE];
+    char buffer_ceros[BLOCKSIZE];
+    memset(buffer_ceros, 0, BLOCKSIZE); // Buffer para detectar huecos (sparse files)
+    int offset = 0;
+
+    while (offset < inodo_origen.tamEnBytesLog) {
+        memset(buffer_lectura, 0, BLOCKSIZE);
+        int bytes_leidos = mi_read(origen, buffer_lectura, offset, BLOCKSIZE);
+        if (bytes_leidos < 0) return FALLO;
+
+        // Solo escribimos si no es un bloque completamente lleno de ceros
+        if (memcmp(buffer_lectura, buffer_ceros, BLOCKSIZE) != 0) {
+            if (mi_write(ruta_destino_completa, buffer_lectura, offset, bytes_leidos) < 0) {
+                return FALLO;
+            }
+        }
+        offset += BLOCKSIZE;
+    }
+
+    return EXITO;
+}
