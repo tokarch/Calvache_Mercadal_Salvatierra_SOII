@@ -44,6 +44,7 @@ void mostrar_inodo(struct inodo *inodo, int ninodo)
     printf("numBloquesOcupados: %d\n", inodo->numBloquesOcupados);
 }
 
+
 /* mostrar_buscar_entrada
  * ----------------------
  * Función auxiliar para probar la función buscar_entrada con diferentes caminos y opciones de reserva.

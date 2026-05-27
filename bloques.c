@@ -173,6 +173,20 @@ int bread(unsigned int nbloque, void *buf)
 }
 
 // --- FUNCIONES DE EXCLUSIÓN MUTUA (Nivel 11) ---
+
+/**
+ * mi_waitSem
+ * ------
+ * Entra en una sección crítica utilizando el semáforo POSIX.
+ * Incorpora una variable contador (inside_sc) para permitir reentrada,
+ * ocupando el semáforo solo si no se ha entrado previamente.
+ * Parámetros:
+ * - Ninguno.
+ * Retorno:
+ * - Ninguno (void).
+ * Llama a: waitSem()
+ * Es llamada por: Funciones de las capas superiores que requieren exclusión mutua.
+ */
 void mi_waitSem() {
     if (!inside_sc) { // Si no estamos ya dentro, ocupamos el semáforo
         waitSem(mutex);
@@ -180,6 +194,19 @@ void mi_waitSem() {
     inside_sc++;
 }
 
+/**
+ * mi_signalSem
+ * ------
+ * Sale de una sección crítica protegida por el semáforo POSIX.
+ * Utiliza el contador (inside_sc) para asegurar que el semáforo solo 
+ * se libere cuando se haya salido de todas las llamadas críticas anidadas.
+ * Parámetros:
+ * - Ninguno.
+ * Retorno:
+ * - Ninguno (void).
+ * Llama a: signalSem()
+ * Es llamada por: Funciones de las capas superiores tras finalizar su sección crítica.
+ */
 void mi_signalSem() {
     inside_sc--;
     if (!inside_sc) { // Si salimos de la última función crítica, liberamos
