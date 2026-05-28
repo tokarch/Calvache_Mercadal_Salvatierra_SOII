@@ -562,9 +562,8 @@ El tratamiento de bloques inexistentes como ceros en `mi_read_f` soporta fichero
 
 ### Riesgos y edge cases
 
-- **`mi_write_f` lee bloques intermedios completos antes de escribirlos:** Si el bloque no existía, `traducir_bloque_inodo` con `reservar=0` retorna -1, y el código salta la lectura. Pero en el bucle intermedio, se usa `reservar=0`, lo cual es correcto porque los bloques intermedios ya deberían existir si se escribió secuencialmente. Sin embargo, si se escribe con huecos, los bloques intermedios podrían no existir y se rellenarían con ceros.
-- **Sección crítica larga:** `mi_write_f` mantiene el semáforo durante toda la operación, incluyendo múltiples lecturas y escrituras de bloques. En un sistema con muchos procesos, esto serializa todas las escrituras.
-- **`nbytes = 0`:** La fórmula `ultimoBL = (offset + nbytes - 1) / BLOCKSIZE` produce underflow si `nbytes = 0` y `offset = 0` (0 - 1 = UINT_MAX). En la práctica, `mi_write_f` no se llama con `nbytes = 0`.
+- **`mi_write_f` lee bloques intermedios completos antes de escribirlos:** Si el bloque no existía, `traducir_bloque_inodo` con `reservar=0` retorna -1, y el código salta la lectura.
+- **Granularidad fina:** Al haber sacado los `bread` y `bwrite` de datos fuera de la sección crítica, se ha eliminado el riesgo de cuello de botella. El sistema es ahora altamente concurrente.
 
 ### Resumen técnico final
 
@@ -620,11 +619,11 @@ Dos cachés separadas (lectura y escritura) evitan que una operación de lectura
 **`mi_write(camino, buf, offset, nbytes)` y `mi_read(camino, buf, offset, nbytes)`:** Usan la caché de última entrada para evitar resolver la ruta en cada llamada. Si el camino coincide con el cacheado, usan el inodo directamente. Si no, llaman a `buscar_entrada` con `reservar=0`.
 
 **`mi_link(camino1, camino2)`:**
-1. Verifica que `camino1` existe y es fichero (no directorio, para evitar ciclos).
-2. Verifica que `camino2` no existe.
-3. Extrae el nombre del último componente de `camino2`.
-4. Crea una nueva entrada en el directorio padre de `camino2` apuntando al mismo inodo que `camino1`.
-5. Incrementa `nlinks` del inodo origen.
+1. Verifica que `camino1` existe y es fichero (no directorio).
+2. Usa el "truco" de llamar a `buscar_entrada(camino2, reservar=1)`. Esto crea una entrada y un inodo nuevo automáticamente.
+3. Lee la entrada recién creada, modifica su puntero para que apunte al inodo de `camino1`, y la reescribe.
+4. Libera el inodo temporal creado en el paso 2 con `liberar_inodo`.
+5. Incrementa `nlinks` del inodo origen. Todo protegido por semáforos.
 
 **`mi_unlink(camino)`:**
 1. Busca la entrada a borrar.

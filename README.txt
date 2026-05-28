@@ -38,7 +38,8 @@ SINTAXIS DE LOS COMANDOS
 ========================
 Compilación:
   $ make clean
-  $ make (compila por defecto hasta el nivel 10)
+  $ make (compila por defecto hasta el nivel 13)
+NOTA: para los diferentes DEBUG hay que ir al Makefile y modificar los flags!!!!
 
 Comandos de la entrega anterior:
   * mi_mkfs: ./mi_mkfs <nombre_dispositivo> <nbloques>

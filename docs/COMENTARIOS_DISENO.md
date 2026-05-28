@@ -102,7 +102,9 @@ Solo se soportan enlaces duros (`mi_link`/`mi_unlink`). No hay mecanismo para cr
 
 ### 2.6 Semáforo global único
 
-Toda la concurrencia se gestiona con un único semáforo mutex (`/sem_mi_sf`). Dos procesos que operen sobre ficheros completamente distintos (inodos diferentes, bloques diferentes) se serializan innecesariamente. En `simulacion.c`, 100 procesos que escriben en sus propios directorios `/simul_.../proceso_PID/` se ejecutan secuencialmente, no en paralelo.
+Toda la concurrencia de metadatos se gestiona con un único semáforo mutex (`/mymutex`). Sin embargo, para evitar un cuello de botella masivo, se ha implementado **granularidad fina** en las operaciones de lectura y escritura (`mi_read_f` y `mi_write_f`). 
+
+El semáforo solo se bloquea para leer el inodo, traducir/reservar bloques y actualizar el tamaño. La E/S real de datos (`bread` y `bwrite` de los bloques físicos) se realiza **fuera de la sección crítica**. Esto permite que en `simulacion.c`, los 100 procesos que escriben en sus propios directorios `/simul_.../proceso_PID/` puedan realizar las operaciones de disco en paralelo, maximizando el rendimiento.
 
 ### 2.7 Sin caché de bloques de disco
 

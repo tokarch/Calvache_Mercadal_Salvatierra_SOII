@@ -477,17 +477,15 @@ El disco se organiza en cuatro zonas consecutivas:
 El sistema usa un semaforo POSIX con nombre `"/sem_mi_sf"` como mutex global:
 
 ```
-  semaforo_mutex_posix.c
+semaforo_mutex_posix.c
     |
     +-> initSem()
-    |     sem_open("/sem_mi_sf", O_CREAT, 0644, 1)
+    |     sem_open("/mymutex", O_CREAT, 0644, 1)
     |     Valor inicial = 1 -> comportamiento de mutex
-    |     O_CREAT -> lo crea si no existe
-    |     Compartido entre procesos (named semaphore)
     |
     +-> waitSem() -> sem_wait() -> decrementa, bloquea si vale 0
     +-> signalSem() -> sem_post() -> incrementa, despierta un bloqueado
-    +-> deleteSem() -> sem_close() + sem_unlink()
+    +-> deleteSem() -> sem_close() (No se usa sem_unlink para evitar destruir el semáforo mientras otros procesos hijos lo necesitan).
 ```
 
 ### 9.2 Secciones criticas
@@ -536,15 +534,12 @@ Las operaciones que modifican estado compartido estan protegidas:
       actualiza puntero en inodo o bloque indirecto
     mi_signalSem()
 
-  mi_write_f():
-    mi_waitSem()
-      leer_inodo()
-      bucle sobre bloques logicos:
-        traducir_bloque_inodo()
-        bread() / bwrite()
-      actualizar tamEnBytesLog
-      escribir_inodo()
-    mi_signalSem()
+  mi_write_f() / mi_read_f():
+    mi_waitSem() -> leer_inodo() -> mi_signalSem()
+    bucle sobre bloques logicos:
+      mi_waitSem() -> traducir_bloque_inodo() -> mi_signalSem()
+      bread() / bwrite() [FUERA DE LA SECCIÓN CRÍTICA - Paralelismo real]
+    mi_waitSem() -> actualizar tamEnBytesLog y timestamps -> escribir_inodo() -> mi_signalSem()
 ```
 
 ### 9.3 Contador de reentrada

@@ -411,8 +411,6 @@ El proyecto usa semaforos POSIX con nombre para proteger las secciones criticas 
 
 **`sem_close`**: Cierra la referencia del proceso al semaforo. Se llama en `deleteSem` durante `bumount`.
 
-**`sem_unlink`**: Elimina el nombre del semaforo del sistema. El semaforo se destruye realmente cuando el ultimo proceso que lo tiene abierto llama a `sem_close`. Se llama en `deleteSem` despues de `sem_close`.
-
 El semaforo protege cuatro operaciones criticas:
 1. **`reservar_bloque`**: Busqueda y marcaje de un bloque libre en el Mapa de Bits.
 2. **`liberar_bloque`**: Desmarcaje de un bloque en el Mapa de Bits.
@@ -531,37 +529,18 @@ if (descriptor == -1) {
 
 Los colores ANSI (como `RED` y `RESET`) se usan para destacar los mensajes de error en la terminal.
 
-### 5.5. Patron goto _fin para limpieza
+### 5.5. Retornos directos y granularidad fina
 
-Las funciones que requieren limpieza en caso de error usan el patron `goto _fin`:
+En lugar de usar patrones antiguos como `goto _fin` para la limpieza de errores, el sistema utiliza retornos directos limpios asegurando la liberación del semáforo:
 
 ```c
-int mi_write_f(unsigned int ninodo, const void *buf_original, unsigned int offset, unsigned int nbytes) {
-    int _ret = FALLO;
-
-    mi_waitSem();  // Inicio seccion critica
-
-    if (leer_inodo(ninodo, &inodo) == FALLO)
-        goto _fin;
-
-    if ((inodo.permisos & 2) != 2) {
-        fprintf(stderr, "Error: No hay permisos de escritura en inodo %d\n", ninodo);
-        goto _fin;
+    mi_waitSem();
+    if (leer_inodo(ninodo, &inodo) == FALLO) {
+        mi_signalSem();
+        return FALLO;
     }
-
-    // ... logica de escritura ...
-
-    _ret = bytes_escritos;  // Exito
-
-_fin:
-    mi_signalSem();  // Fin seccion critica (siempre se ejecuta)
-    return _ret;
-}
+    mi_signalSem();
 ```
-
-Este patron garantiza que `mi_signalSem()` se ejecute siempre, independientemente de donde ocurra el error. Sin el `goto`, habria que llamar a `mi_signalSem()` en cada punto de retorno, lo que es propenso a errores y dificil de mantener.
-
-El patron es especialmente importante en secciones criticas protegidas por semaforos. Si un error provocara un retorno sin liberar el semaforo, el sistema quedaria en deadlock: ningun otro proceso podria entrar a la seccion critica.
 
 ### 5.6. Liberacion de inodo en caso de error durante mi_write_f
 
