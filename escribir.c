@@ -9,6 +9,7 @@ Calvache Vidal, Antonio
 VERIFICADO FINALMENTE POR
 =====================================
 Mercadal Forteza, Lluís
+Salvatierra Romero, Diego Jeroni
 */
 
 /**
