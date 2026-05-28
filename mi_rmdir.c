@@ -9,6 +9,19 @@ AUTORES
 * Salvatierra Romero, Diego Jeroni
 */
 
+/**
+ * main (Comando mi_rmdir)
+ * ------
+ * Programa encargado de borrar un directorio (que debe estar vacío) del dispositivo virtual.
+ * Verifica semánticamente que la ruta proporcionada termina en '/' antes de proceder con el borrado.
+ * Uso: ./mi_rmdir <disco> <ruta_directorio/>
+ * * Parámetros (Línea de comandos):
+ * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
+ * - argv[2]: Ruta absoluta del directorio a eliminar (debe terminar en '/', ej. "/dir1/").
+ * * Retorno:
+ * - Devuelve EXITO (0) si finaliza correctamente, o FALLO (-1) en caso de error.
+ * * Llama a: fprintf(), strlen(), bmount(), mi_unlink(), mostrar_error_buscar_entrada(), bumount()
+ */
 int main(int argc, char **argv) {
     if (argc != 3) {
         fprintf(stderr, "Sintaxis: %s <disco> <ruta_directorio>\n", argv[0]);

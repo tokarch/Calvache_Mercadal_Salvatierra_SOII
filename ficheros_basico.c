@@ -1108,8 +1108,10 @@ int liberar_bloques_inodo(unsigned int primerBL, struct inodo *inodo)
     cbwrites = 0;
 
     // Calculamos el último bloque lógico ocupado
-    if (inodo->tamEnBytesLog == 0)
-        return 0;
+    if (inodo->tamEnBytesLog == 0) {
+            mi_signalSem();
+            return 0; // Si el archivo no tiene bloques lógicos, no hay nada que liberar
+    }
 
     if (inodo->tamEnBytesLog % BLOCKSIZE == 0)
     {

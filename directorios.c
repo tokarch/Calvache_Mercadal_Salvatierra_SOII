@@ -892,6 +892,14 @@ int mi_unlink(const char *camino)
  * mi_rn
  * ------
  * Renombra un fichero o directorio dentro de su mismo directorio padre.
+ * Actualiza la entrada en el directorio sin cambiar el inodo asociado, y limpia
+ * las cachés para evitar inconsistencias.
+ * * Parámetros:
+ * - camino: Ruta absoluta de la entrada a renombrar.
+ * - nuevo_nombre: Nuevo nombre que se le asignará (sin rutas, solo el nombre).
+ * * Retorno:
+ * - Devuelve EXITO (0) si finaliza correctamente, o un código de error negativo.
+ * * Llama a: strchr(), fprintf(), buscar_entrada(), leer_inodo(), mi_read_f(), strcmp(), memset(), strncpy(), mi_write_f()
  */
 int mi_rn(const char *camino, const char *nuevo_nombre) {
     mi_waitSem();
@@ -977,6 +985,13 @@ int mi_rn(const char *camino, const char *nuevo_nombre) {
  * ------
  * Mueve un fichero de una ruta a otra. Equivale a crear un enlace en el destino
  * y borrar el enlace del origen (solo para ficheros).
+ * * Parámetros:
+ * - origen: Ruta absoluta del fichero a mover.
+ * - destino: Ruta absoluta del destino (puede ser un directorio o el nuevo nombre del fichero).
+ * * Retorno:
+ * - Devuelve EXITO (0) si finaliza correctamente, o un código de error negativo (FALLO).
+ * * Llama a: strcpy(), strlen(), strrchr(), strcat(), mi_link(), mi_unlink()
+ * * Es llamada por: mi_mv (comando de usuario).
  */
 int mi_mv(const char *origen, const char *destino) {
     char ruta_destino_completa[TAMNOMBRE * PROFUNDIDAD];
@@ -1014,6 +1029,13 @@ int mi_mv(const char *origen, const char *destino) {
  * mi_cp_f
  * ------
  * Copia el contenido completo de un fichero a otro destino creando un inodo nuevo.
+ * Mantiene los permisos del fichero original e ignora los bloques vacíos (ficheros dispersos).
+ * * Parámetros:
+ * - origen: Ruta absoluta del fichero original.
+ * - destino: Ruta absoluta donde se copiará (puede ser un directorio o el nuevo fichero).
+ * * Retorno:
+ * - Devuelve EXITO (0) si finaliza correctamente, o un código de error negativo (FALLO).
+ * * Llama a: buscar_entrada(), leer_inodo(), strcpy(), strlen(), strrchr(), strcat(), mi_creat(), memset(), mi_read(), memcmp(), mi_write()
  */
 int mi_cp_f(const char *origen, const char *destino) {
     unsigned int p_inodo_dir = 0, p_inodo_origen = 0, p_entrada = 0;

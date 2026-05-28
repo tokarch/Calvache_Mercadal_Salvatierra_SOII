@@ -34,6 +34,20 @@ Mercadal Forteza, Lluís
 #define CANT_REGISTROS_BUFFER 256
 #define TAM_BUFFER (CANT_REGISTROS_BUFFER * sizeof(struct REGISTRO))
 
+/**
+ * main (Comando verificacion)
+ * ------
+ * Programa encargado de verificar la coherencia de una simulación de concurrencia previa.
+ * Recorre los directorios de cada proceso, analiza el contenido de sus ficheros 'prueba.dat',
+ * y genera un informe detallado ('informe.txt') con las métricas de escritura.
+ * Uso: ./verificacion <disco> <directorio_simulacion>
+ * * Parámetros (Línea de comandos):
+ * - argv[1]: Nombre del dispositivo virtual (ej. "disco").
+ * - argv[2]: Ruta absoluta del directorio de simulación a verificar (ej. "/simul_20230528123000/").
+ * * Retorno:
+ * - Devuelve EXITO (0) si finaliza correctamente, o FALLO (-1) en caso de error.
+ * * Llama a: fprintf(), bmount(), mi_stat(), mi_creat(), bumount(), malloc(), mi_read(), free(), strchr(), atoi(), sprintf(), localtime(), strftime(), strcat(), printf(), mi_write()
+ */
 int main(int argc, char **argv) {
     if (argc != 3) {
         fprintf(stderr, "Sintaxis: %s <disco> <directorio_simulacion>\n", argv[0]);
